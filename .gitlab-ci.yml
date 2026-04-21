@@ -1,0 +1,26 @@
+stages:
+  - build
+  - deploy
+
+build_frontend:
+  stage: build
+  image: node:18-alpine
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
+
+pages:
+  stage: deploy
+  dependencies:
+    - build_frontend
+  script:
+    - mv dist public
+  artifacts:
+    paths:
+      - public/
+  only:
+    - main
