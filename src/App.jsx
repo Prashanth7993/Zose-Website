@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import HeroSection from "./components/HeroSection";
 import MarqueeBanner from "./components/MarqueeBanner";
@@ -9,9 +10,25 @@ import Footer from "./components/Footer";
 import AuthModal from "./components/AuthModal";
 import FloatingContactButtons from "./components/FloatingContactButtons";
 import DubaiShowcaseSection from "./components/DubaiShowcaseSection";
+import CollectionPage from "./components/CollectionPage";
 import { clearStoredUser, loadStoredUser, storeUser } from "./lib/auth";
 
+function HomePage({ onShopClick }) {
+  return (
+    <>
+      <HeroSection onShopClick={onShopClick} />
+      <MarqueeBanner />
+      <CollectionsSection />
+      <DubaiShowcaseSection />
+      <TrustSection />
+      <NewsletterSection />
+    </>
+  );
+}
+
 function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [authModal, setAuthModal] = useState(null); // null | "login" | "register"
   const [user, setUser] = useState(null);
   const [ordersModal, setOrdersModal] = useState(null); // null | "guest" | "user"
@@ -36,6 +53,8 @@ function App() {
     setOrdersModal(user ? "user" : "guest");
   };
 
+  const activeNav = ordersModal ? "orders" : location.pathname === "/collections" ? "collections" : "home";
+
   return (
     <div className="bg-white min-h-screen">
       <Navbar
@@ -44,13 +63,14 @@ function App() {
         onRegisterClick={() => setAuthModal("register")}
         onLogout={handleLogout}
         onOrdersClick={handleOrdersClick}
+        onCollectionsClick={() => navigate("/collections")}
+        onNewArrivalsClick={() => navigate("/")}
+        activeNav={activeNav}
       />
-      <HeroSection onShopClick={() => setAuthModal("register")} />
-      <MarqueeBanner />
-      <CollectionsSection />
-      <DubaiShowcaseSection />
-      <TrustSection />
-      <NewsletterSection />
+      <Routes>
+        <Route path="/" element={<HomePage onShopClick={() => setAuthModal("register")} />} />
+        <Route path="/collections" element={<CollectionPage />} />
+      </Routes>
       <Footer />
       <FloatingContactButtons />
 

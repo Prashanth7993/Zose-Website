@@ -29,7 +29,7 @@ export function MarqueeBanner() {
 }
 
 // CollectionsSection.jsx
-const collections = [
+export const collectionsData = [
   {
     id: 1,
     badge: "Bestseller",
@@ -65,7 +65,14 @@ const collections = [
   },
 ];
 
-export function CollectionsSection() {
+export function CollectionsSection({
+  showHeader = true,
+  products = collectionsData,
+  gridClassName = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6",
+  imageClassName = "h-40 sm:h-48 lg:h-56",
+  titleClassName = "text-lg sm:text-xl lg:text-[21px]",
+  descriptionClassName = "text-[11px] sm:text-[12px] lg:text-[13px]",
+}) {
   const colorOptions = ["Black", "White", "Merun", "Sky blue", "Bottle green", "Navy blue"];
   const sizeOptions = ["M", "L", "XL", "2XL", "3XL"];
   const sizeChart = useMemo(
@@ -143,24 +150,26 @@ export function CollectionsSection() {
   return (
     <>
       <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-12 max-w-7xl mx-auto">
-        <div className="text-center mb-8 sm:mb-10 lg:mb-14">
-          <p className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-[#C9A14A] mb-2 sm:mb-3">Featured</p>
-          <h2
-            className="text-2xl sm:text-3xl lg:text-[42px] font-light text-[#0A0A0A] tracking-wide"
-            style={{ fontFamily: "'Cormorant Garamond', serif" }}
-          >
-            Our Collections
-          </h2>
-          <div className="w-8 sm:w-10 lg:w-12 h-px mx-auto mt-3 sm:mt-4 bg-gradient-to-r from-transparent via-[#C9A14A] to-transparent" />
-        </div>
+        {showHeader && (
+          <div className="text-center mb-8 sm:mb-10 lg:mb-14">
+            <p className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-[#C9A14A] mb-2 sm:mb-3">Featured</p>
+            <h2
+              className="text-2xl sm:text-3xl lg:text-[42px] font-light text-[#0A0A0A] tracking-wide"
+              style={{ fontFamily: "'Cormorant Garamond', serif" }}
+            >
+              Our Collections
+            </h2>
+            <div className="w-8 sm:w-10 lg:w-12 h-px mx-auto mt-3 sm:mt-4 bg-gradient-to-r from-transparent via-[#C9A14A] to-transparent" />
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
-          {collections.map((col) => (
+        <div className={gridClassName}>
+          {products.map((col) => (
             <div
               key={col.id}
-              className="bg-white border border-[#C9A14A]/20 hover:border-[#C9A14A]/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden"
+              className="bg-white border border-[#C9A14A]/20 hover:border-[#C9A14A]/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden rounded-2xl"
             >
-              <div className={`h-40 sm:h-48 lg:h-56 bg-gradient-to-br ${col.accent} border-b border-[#C9A14A]/10 relative overflow-hidden`}>
+              <div className={`${imageClassName} bg-gradient-to-br ${col.accent} border-b border-[#C9A14A]/10 relative overflow-hidden rounded-t-2xl`}>
                 {col.tag && (
                   <span className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-[#C9A14A] text-[#0A0A0A] text-[9px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase px-2 sm:px-3 py-1">
                     {col.tag}
@@ -179,30 +188,17 @@ export function CollectionsSection() {
                     />
                   ))}
                 </div>
-                <div className="absolute inset-0 z-20 flex items-center justify-center">
-                  <div className="text-center">
-                    <span
-                      className={`text-3xl sm:text-4xl lg:text-[52px] font-light block ${col.letterColor}`}
-                      style={{ fontFamily: "'Cormorant Garamond', serif" }}
-                    >
-                      Z
-                    </span>
-                    <span className="text-[9px] sm:text-[10px] tracking-[0.2em] text-white uppercase">
-                      {col.badge === "New Arrival" ? "Urban Line" : col.badge === "Sustainable" ? "Eco Line" : "Classic Line"}
-                    </span>
-                  </div>
-                </div>
               </div>
 
               <div className="p-4 sm:p-5 lg:p-6">
                 <p className="text-[9px] sm:text-[10px] tracking-[0.16em] uppercase text-[#C9A14A] mb-2">{col.badge}</p>
                 <h3
-                  className="text-lg sm:text-xl lg:text-[21px] font-normal text-[#0A0A0A] mb-2"
+                  className={`${titleClassName} font-normal text-[#0A0A0A] mb-2`}
                   style={{ fontFamily: "'Cormorant Garamond', serif" }}
                 >
                   {col.name}
                 </h3>
-                <p className="text-[11px] sm:text-[12px] lg:text-[13px] text-[#333333] leading-relaxed mb-4 sm:mb-5">{col.desc}</p>
+                <p className={`${descriptionClassName} text-[#333333] leading-relaxed mb-4 sm:mb-5`}>{col.desc}</p>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-baseline gap-2">
                     <span className="text-[14px] sm:text-[15px] text-[#333333]/60 line-through">AED {col.originalPrice}</span>
@@ -342,10 +338,15 @@ export function CollectionsSection() {
                 <div>
                   <p className="text-[12px] tracking-[0.16em] uppercase text-[#C9A14A] mb-1 font-semibold">Price</p>
                   <p className="text-[12px] text-[#333333]/60 line-through">AED {selectedProduct.originalPrice}</p>
-                  <p className="text-[18px] text-[#0A0A0A] font-semibold">
-                    AED{" "}
-                    <span style={{ fontFamily: "'Outfit', sans-serif" }}>{selectedProduct.offerPrice * quantity}</span>
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[18px] text-[#0A0A0A] font-semibold">
+                      AED{" "}
+                      <span style={{ fontFamily: "'Outfit', sans-serif" }}>{selectedProduct.offerPrice * quantity}</span>
+                    </p>
+                    <p className="text-[12px] text-emerald-600 font-semibold">
+                    {Math.round(((selectedProduct.originalPrice - selectedProduct.offerPrice) / selectedProduct.originalPrice) * 100)}% OFF
+                    </p>
+                  </div>
                 </div>
                 <div>
                   <p className="text-[12px] tracking-[0.16em] uppercase text-[#C9A14A] mb-1 font-semibold">Quantity</p>

@@ -1,9 +1,30 @@
 import { useState } from "react";
 
-export default function Navbar({ user, onLoginClick, onRegisterClick, onLogout, onOrdersClick }) {
+export default function Navbar({
+  user,
+  onLoginClick,
+  onRegisterClick,
+  onLogout,
+  onOrdersClick,
+  onCollectionsClick,
+  onNewArrivalsClick,
+  activeNav = "home",
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const supportEmail = "silverstonetrading2026@gmail.com";
   const supportPhone = "+971 502533578";
+  const navItems = [
+    { label: "Collections", key: "collections" },
+    { label: "New Arrivals", key: "newArrivals" },
+    { label: "Orders", key: "orders" },
+    { label: "About", key: "about" },
+  ];
+
+  const handleNavClick = (item) => {
+    if (item.key === "collections") onCollectionsClick?.();
+    if (item.key === "newArrivals") onNewArrivalsClick?.();
+    if (item.key === "orders") onOrdersClick?.();
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#C9A14A]/20">
@@ -11,15 +32,17 @@ export default function Navbar({ user, onLoginClick, onRegisterClick, onLogout, 
 
         {/* Left Nav Links - responsive text size */}
         <div className="hidden md:flex items-center gap-4 lg:gap-8">
-          {["Collections", "New Arrivals", "Orders", "About"].map((item) => (
+          {navItems.map((item) => (
             <button
-              key={item}
-              onClick={() => {
-                if (item === "Orders") onOrdersClick?.();
-              }}
-              className="text-[10px] sm:text-[11px] tracking-[0.12em] uppercase text-[#555555] hover:text-[#0A0A0A] transition-colors duration-200"
+              key={item.key}
+              onClick={() => handleNavClick(item)}
+              className={`text-[10px] sm:text-[11px] tracking-[0.12em] uppercase transition-colors duration-200 pb-1 border-b ${
+                activeNav === item.key
+                  ? "text-[#0A0A0A] border-[#C9A14A]"
+                  : "text-[#555555] border-transparent hover:text-[#0A0A0A]"
+              }`}
             >
-              {item}
+              {item.label}
             </button>
           ))}
         </div>
@@ -96,18 +119,20 @@ export default function Navbar({ user, onLoginClick, onRegisterClick, onLogout, 
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-white border-t border-[#C9A14A]/20 px-4 sm:px-6 py-4 flex flex-col gap-4">
-          {["Collections", "New Arrivals", "Orders", "About"].map((item) => (
+          {navItems.map((item) => (
             <button
-              key={item}
+              key={item.key}
               onClick={() => {
-                if (item === "Orders") {
-                  onOrdersClick?.();
-                  setMenuOpen(false);
-                }
+                handleNavClick(item);
+                setMenuOpen(false);
               }}
-              className="text-[11px] sm:text-[12px] tracking-[0.12em] uppercase text-[#555555] text-left hover:text-[#0A0A0A] transition-colors"
+              className={`text-[11px] sm:text-[12px] tracking-[0.12em] uppercase text-left transition-colors border-l-2 pl-3 ${
+                activeNav === item.key
+                  ? "text-[#0A0A0A] border-[#C9A14A]"
+                  : "text-[#555555] border-transparent hover:text-[#0A0A0A]"
+              }`}
             >
-              {item}
+              {item.label}
             </button>
           ))}
           <div className="border-t border-[#C9A14A]/10 pt-4 space-y-2">

@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: zose-frontend:latest
+    ports:
+      - "8080:80"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../Dockerfile.backend
+    ports:
+      - "3000:3000"
+
+  lint-frontend:
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: npm run lint
+
+  # Assuming tests are added later
+  # test-frontend:
+  #   image: node:18-alpine
+  #   working_dir: /app
+  #   volumes:
+  #     - .:/app
+  #   command: npm test
+
+  # test-backend:
+  #   image: node:18-alpine
+  #   working_dir: /app/backend
+  #   volumes:
+  #     - ./backend:/app
+  #   command: npm test
+
+  build-frontend:
+    image: docker:dind
+    volumes:
+      - .:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /workspace
+    command: docker build -f Dockerfile.frontend -t prashanth7993/zose-frontend .
+
+  build-backend:
+    image: docker:dind
+    volumes:
+      - .:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /workspace
+    command: docker build -f Dockerfile.backend -t prashanth7993/zose-backend .
+
+  push-frontend:
+    image: docker:dind
+    environment:
+      DOCKER_USERNAME: prashanth7993
+      DOCKER_PASSWORD: Prashatn@799
+    volumes:
+      - .:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /workspace
+    command: |
+      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      docker push prashanth7993/zose-frontend
+
+  push-backend:
+    image: docker:dind
+    environment:
+      DOCKER_USERNAME: prashanth7993
+      DOCKER_PASSWORD: Prashatn@799
+    volumes:
+      - .:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /workspace
+    command: |
+      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      docker push prashanth7993/zose-backend
