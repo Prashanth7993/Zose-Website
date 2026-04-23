@@ -76,6 +76,44 @@ const res = await fetch("/api/auth/register", {
 
 ---
 
+## 🗄️ Local MySQL Setup (Store Data Locally)
+
+1. Install MySQL locally and create a user (or use `root`).
+2. In `backend`, copy `.env.example` to `.env`.
+3. Update DB values in `backend/.env`:
+
+```env
+DB_CLIENT=mysql
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=your_mysql_password
+MYSQL_DATABASE=zose_db
+```
+
+4. Start backend server (it auto-creates DB/table):
+
+```bash
+npm run dev:server
+```
+
+5. Start frontend:
+
+```bash
+npm run dev
+```
+
+Your app will now save user auth data in local MySQL instead of SQLite.
+
+To switch back to SQLite:
+
+```env
+DB_CLIENT=sqlite
+DB_FILE=data/app.db
+```
+
+---
+
 ## 🎨 Brand Colors (in tailwind.config.js)
 | Token         | Hex       | Usage                    |
 |---------------|-----------|--------------------------|

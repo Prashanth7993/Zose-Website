@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import CollectionsSection from "./CollectionsSection";
-import { collectionsData } from "./sections";
 
 const fitOptions = ["Regular", "Oversized", "Slim"];
 const colorOptions = ["Black", "White", "Merun", "Sky blue", "Bottle green", "Navy blue"];
@@ -16,7 +15,7 @@ function FilterCheckbox({ label, checked, onChange }) {
   );
 }
 
-export default function CollectionPage() {
+export default function CollectionPage({ products = [], isLoading = false }) {
   const [sortBy, setSortBy] = useState("newest");
   const [sortOpen, setSortOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -31,21 +30,21 @@ export default function CollectionPage() {
   const [minPrice, setMinPrice] = useState(120);
   const [maxPrice, setMaxPrice] = useState(260);
 
-  const products = useMemo(
+  const enrichedProducts = useMemo(
     () =>
-      collectionsData.map((item, index) => ({
+      products.map((item, index) => ({
         ...item,
         fit: fitOptions[index % fitOptions.length],
-        color: colorOptions[index % colorOptions.length],
+        color: item.colors?.[0] || colorOptions[index % colorOptions.length],
         gender: genderOptions[index % genderOptions.length],
-        size: sizeOptions[index % sizeOptions.length],
+        size: item.sizes?.[0] || sizeOptions[index % sizeOptions.length],
         isNewArrival: item.badge === "New Arrival",
       })),
-    []
+    [products]
   );
 
   const filteredProducts = useMemo(() => {
-    const output = products.filter((product) => {
+    const output = enrichedProducts.filter((product) => {
       if (product.offerPrice < minPrice || product.offerPrice > maxPrice) return false;
       if (selectedFits.length && !selectedFits.includes(product.fit)) return false;
       if (selectedColors.length && !selectedColors.includes(product.color)) return false;
@@ -59,7 +58,7 @@ export default function CollectionPage() {
     if (sortBy === "price_low_high") return output.sort((a, b) => a.offerPrice - b.offerPrice);
     if (sortBy === "price_high_low") return output.sort((a, b) => b.offerPrice - a.offerPrice);
     return output.sort((a, b) => b.id - a.id);
-  }, [products, minPrice, maxPrice, selectedFits, selectedColors, selectedGender, selectedSizes, onlyOffers, onlyNewArrivals, sortBy]);
+  }, [enrichedProducts, minPrice, maxPrice, selectedFits, selectedColors, selectedGender, selectedSizes, onlyOffers, onlyNewArrivals, sortBy]);
 
   const sortLabel =
     sortBy === "price_low_high"
@@ -196,6 +195,11 @@ export default function CollectionPage() {
         </aside>
 
         <div>
+          {isLoading && (
+            <div className="mb-4 rounded-2xl border border-[#C9A14A]/20 px-4 py-3 text-[13px] text-[#555555]">
+              Loading products...
+            </div>
+          )}
           <div className="mb-3 sm:mb-4 lg:hidden">
             <button
               type="button"

@@ -78,7 +78,7 @@ export default function AuthModal({ mode, onClose, onSwitch, onSuccess }) {
           };
 
       const response = isLogin ? await loginUser(payload) : await registerUser(payload);
-      onSuccess(response.user);
+      onSuccess(response);
     } catch (error) {
       setServerError(error.message || "Unable to complete your request.");
     } finally {

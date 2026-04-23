@@ -1,9 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import dubai1 from "../assets/dubai1.png";
-import dubai2 from "../assets/dubai2.png";
-import duabi3 from "../assets/duabi3.png";
-import dubai4 from "../assets/dubai4.png";
-import dubai5 from "../assets/dubai5.png";
+import { useMemo, useState } from "react";
+import geminiTshirtImage from "../assets/Gemini_Generated_Image_xuqw8oxuqw8oxuqw.png";
 import zoseLogo from "../assets/zose.jpeg";
 
 // MarqueeBanner.jsx
@@ -69,11 +65,19 @@ export function CollectionsSection({
   showHeader = true,
   products = collectionsData,
   gridClassName = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6",
-  imageClassName = "h-40 sm:h-48 lg:h-56",
+  imageClassName = "h-52 sm:h-60 lg:h-72",
   titleClassName = "text-lg sm:text-xl lg:text-[21px]",
   descriptionClassName = "text-[11px] sm:text-[12px] lg:text-[13px]",
 }) {
   const colorOptions = ["Black", "White", "Merun", "Sky blue", "Bottle green", "Navy blue"];
+  const colorPreviewStyles = {
+    Black: { filter: "brightness(0.32) saturate(0.8) contrast(1.18)" },
+    White: { filter: "brightness(1.32) saturate(0.08) contrast(0.88)" },
+    Merun: { filter: "hue-rotate(315deg) saturate(2.8) brightness(0.78) contrast(1.15)" },
+    "Sky blue": { filter: "hue-rotate(168deg) saturate(2.9) brightness(1.02) contrast(1.08)" },
+    "Bottle green": { filter: "hue-rotate(88deg) saturate(2.5) brightness(0.72) contrast(1.14)" },
+    "Navy blue": { filter: "hue-rotate(198deg) saturate(2.3) brightness(0.5) contrast(1.22)" },
+  };
   const sizeOptions = ["M", "L", "XL", "2XL", "3XL"];
   const sizeChart = useMemo(
     () => [
@@ -94,23 +98,24 @@ export function CollectionsSection({
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
-  const [activeCardImageIndex, setActiveCardImageIndex] = useState(0);
-  const [activePopupImageIndex, setActivePopupImageIndex] = useState(0);
-  const tshirtImages = [dubai1, dubai2, duabi3, dubai4, dubai5];
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setActiveCardImageIndex((current) => (current + 1) % tshirtImages.length);
-    }, 2800);
-    return () => window.clearInterval(timer);
-  }, [tshirtImages.length]);
+  const normalizedProducts = products.map((product, index) => ({
+    id: product.id ?? index + 1,
+    badge: product.badge || "Collection",
+    name: product.name,
+    desc: product.desc || product.description || "",
+    originalPrice: Number(product.originalPrice ?? product.actualPrice ?? 0),
+    offerPrice: Number(product.offerPrice ?? 0),
+    tag: product.tag || null,
+    colors: Array.isArray(product.colors) ? product.colors : colorOptions,
+    sizes: Array.isArray(product.sizes) && product.sizes.length ? product.sizes : sizeOptions,
+    images: Array.isArray(product.images) ? product.images : [],
+  }));
 
   const openOrderPopup = (product) => {
     setSelectedProduct(product);
-    setSelectedColor(colorOptions[0]);
-    setSelectedSize(sizeOptions[0]);
+    setSelectedColor(product.colors?.[0] || colorOptions[0]);
+    setSelectedSize(product.sizes?.[0] || sizeOptions[0]);
     setQuantity(1);
-    setActivePopupImageIndex(0);
     setCustomerName("");
     setCustomerPhone("");
     setCustomerAddress("");
@@ -164,10 +169,10 @@ export function CollectionsSection({
         )}
 
         <div className={gridClassName}>
-          {products.map((col) => (
+          {normalizedProducts.map((col) => (
             <div
               key={col.id}
-              className="bg-white border border-[#C9A14A]/20 hover:border-[#C9A14A]/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden rounded-2xl"
+              className="bg-white border border-[#C9A14A]/20 hover:border-[#C9A14A]/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden rounded-2xl max-w-[320px] mx-auto w-full"
             >
               <div className={`${imageClassName} bg-gradient-to-br ${col.accent} border-b border-[#C9A14A]/10 relative overflow-hidden rounded-t-2xl`}>
                 {col.tag && (
@@ -176,17 +181,12 @@ export function CollectionsSection({
                   </span>
                 )}
                 <div className="absolute inset-0 bg-black/20 z-10" />
-                <div className="absolute inset-0 z-0">
-                  {tshirtImages.map((imageSrc, index) => (
-                    <img
-                      key={`${col.id}-${imageSrc}`}
-                      src={imageSrc}
-                      alt={`${col.name} preview`}
-                      className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-                        activeCardImageIndex === index ? "opacity-100" : "opacity-0"
-                      }`}
-                    />
-                  ))}
+                <div className="absolute inset-0 z-0 p-3 bg-white/85">
+                  <img
+                    src={geminiTshirtImage}
+                    alt={`${col.name} preview`}
+                    className="absolute inset-0 h-full w-full object-contain"
+                  />
                 </div>
               </div>
 
@@ -219,6 +219,11 @@ export function CollectionsSection({
             </div>
           ))}
         </div>
+        {!normalizedProducts.length && (
+          <div className="rounded-2xl border border-[#C9A14A]/20 px-4 py-8 text-center text-[14px] text-[#555555]">
+            No products available yet.
+          </div>
+        )}
       </section>
 
       {selectedProduct && (
@@ -239,50 +244,18 @@ export function CollectionsSection({
               </p>
               <div className="rounded-xl border border-[#C9A14A]/20 overflow-hidden bg-[#f7f8fb]">
                 <div className="relative aspect-[4/3] sm:aspect-[16/10]">
-                  {tshirtImages.map((imageSrc, index) => (
-                    <img
-                      key={`popup-${imageSrc}`}
-                      src={imageSrc}
-                      alt="T-shirt preview"
-                      className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-300 ${
-                        activePopupImageIndex === index ? "opacity-100" : "opacity-0"
-                      }`}
-                    />
-                  ))}
-                  <button
-                    onClick={() =>
-                      setActivePopupImageIndex((current) => (current - 1 + tshirtImages.length) % tshirtImages.length)
-                    }
-                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border border-[#C9A14A]/30 text-[#0A0A0A]"
-                    aria-label="Previous image"
-                  >
-                    {"<"}
-                  </button>
-                  <button
-                    onClick={() => setActivePopupImageIndex((current) => (current + 1) % tshirtImages.length)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border border-[#C9A14A]/30 text-[#0A0A0A]"
-                    aria-label="Next image"
-                  >
-                    {">"}
-                  </button>
-                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white/80 px-2 py-1 rounded-full">
-                    {tshirtImages.map((_, index) => (
-                      <button
-                        key={`dot-${index}`}
-                        onClick={() => setActivePopupImageIndex(index)}
-                        className={`w-2.5 h-2.5 rounded-full ${
-                          activePopupImageIndex === index ? "bg-[#C9A14A]" : "bg-[#C9A14A]/30"
-                        }`}
-                        aria-label={`Go to image ${index + 1}`}
-                      />
-                    ))}
-                  </div>
+                  <img
+                    src={geminiTshirtImage}
+                    alt={`${selectedProduct.name} in ${selectedColor}`}
+                    className="absolute inset-0 h-full w-full object-contain transition-all duration-300"
+                    style={colorPreviewStyles[selectedColor] || {}}
+                  />
                 </div>
               </div>
               <div>
                 <p className="text-[12px] tracking-[0.16em] uppercase text-[#C9A14A] mb-2 font-semibold">Available Colors</p>
                 <div className="flex flex-wrap gap-2">
-                  {colorOptions.map((color) => (
+                  {(selectedProduct.colors?.length ? selectedProduct.colors : colorOptions).map((color) => (
                     <button
                       key={color}
                       onClick={() => setSelectedColor(color)}
@@ -300,7 +273,7 @@ export function CollectionsSection({
               <div>
                 <p className="text-[12px] tracking-[0.16em] uppercase text-[#C9A14A] mb-2 font-semibold">Select Size</p>
                 <div className="flex flex-wrap gap-2">
-                  {sizeOptions.map((size) => (
+                  {(selectedProduct.sizes?.length ? selectedProduct.sizes : sizeOptions).map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}

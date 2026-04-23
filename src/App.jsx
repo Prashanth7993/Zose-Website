@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import HeroSection from "./components/HeroSection";
 import MarqueeBanner from "./components/MarqueeBanner";
@@ -11,14 +11,35 @@ import AuthModal from "./components/AuthModal";
 import FloatingContactButtons from "./components/FloatingContactButtons";
 import DubaiShowcaseSection from "./components/DubaiShowcaseSection";
 import CollectionPage from "./components/CollectionPage";
-import { clearStoredUser, loadStoredUser, storeUser } from "./lib/auth";
+import AdminPage from "./components/AdminPage";
+import { clearStoredSession, fetchProducts, loadStoredUser, storeAuthSession } from "./lib/auth";
 
-function HomePage({ onShopClick }) {
+const mapApiProductToCard = (product) => ({
+  id: product.id,
+  name: product.name,
+  description: product.description,
+  desc: product.description,
+  actualPrice: Number(product.actualPrice),
+  originalPrice: Number(product.actualPrice),
+  offerPrice: Number(product.offerPrice),
+  sizes: Array.isArray(product.sizes) ? product.sizes : [],
+  images: Array.isArray(product.images) ? product.images : [],
+  colors: product.colorImageMap ? Object.keys(product.colorImageMap) : [],
+  badge: "Collection",
+  tag: null,
+});
+
+function HomePage({ onShopClick, products, isProductsLoading }) {
   return (
     <>
       <HeroSection onShopClick={onShopClick} />
       <MarqueeBanner />
-      <CollectionsSection />
+      <CollectionsSection products={products} />
+      {isProductsLoading && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 pb-6 text-[13px] text-[#555555]">
+          Loading products from database...
+        </div>
+      )}
       <DubaiShowcaseSection />
       <TrustSection />
       <NewsletterSection />
@@ -33,27 +54,52 @@ function App() {
   const [user, setUser] = useState(null);
   const [ordersModal, setOrdersModal] = useState(null); // null | "guest" | "user"
   const [orderLookupNumber, setOrderLookupNumber] = useState("");
+  const [products, setProducts] = useState([]);
+  const [isProductsLoading, setIsProductsLoading] = useState(true);
+
+  const loadProducts = async () => {
+    setIsProductsLoading(true);
+    try {
+      const response = await fetchProducts();
+      setProducts((response.products || []).map(mapApiProductToCard));
+    } catch {
+      setProducts([]);
+    } finally {
+      setIsProductsLoading(false);
+    }
+  };
 
   useEffect(() => {
     setUser(loadStoredUser());
+    loadProducts();
   }, []);
 
-  const handleAuthSuccess = (userData) => {
-    storeUser(userData);
-    setUser(userData);
+  const handleAuthSuccess = (authResponse) => {
+    storeAuthSession(authResponse);
+    setUser(authResponse.user);
     setAuthModal(null);
+    if (authResponse.user?.isAdmin) {
+      navigate("/admin/products");
+    }
   };
 
   const handleLogout = () => {
-    clearStoredUser();
+    clearStoredSession();
     setUser(null);
+    if (location.pathname.startsWith("/admin")) {
+      navigate("/");
+    }
   };
 
   const handleOrdersClick = () => {
     setOrdersModal(user ? "user" : "guest");
   };
 
-  const activeNav = ordersModal ? "orders" : location.pathname === "/collections" ? "collections" : "home";
+  const activeNav = ordersModal
+    ? "orders"
+    : location.pathname === "/collections"
+      ? "collections"
+      : "home";
 
   return (
     <div className="bg-white min-h-screen">
@@ -66,10 +112,32 @@ function App() {
         onCollectionsClick={() => navigate("/collections")}
         onNewArrivalsClick={() => navigate("/")}
         activeNav={activeNav}
+        hideNavItems={location.pathname.startsWith("/admin")}
       />
       <Routes>
-        <Route path="/" element={<HomePage onShopClick={() => setAuthModal("register")} />} />
-        <Route path="/collections" element={<CollectionPage />} />
+        <Route
+          path="/"
+          element={<HomePage onShopClick={() => setAuthModal("register")} products={products} isProductsLoading={isProductsLoading} />}
+        />
+        <Route path="/collections" element={<CollectionPage products={products} isLoading={isProductsLoading} />} />
+        <Route
+          path="/admin/*"
+          element={
+            user?.isAdmin ? (
+              <AdminPage
+                onProductSaved={loadProducts}
+                onOrdersClick={handleOrdersClick}
+                onUnauthorized={() => {
+                  clearStoredSession();
+                  setUser(null);
+                  navigate("/");
+                }}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
       </Routes>
       <Footer />
       <FloatingContactButtons />

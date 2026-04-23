@@ -9,16 +9,19 @@ export default function Navbar({
   onCollectionsClick,
   onNewArrivalsClick,
   activeNav = "home",
+  hideNavItems = false,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const supportEmail = "silverstonetrading2026@gmail.com";
   const supportPhone = "+971 502533578";
-  const navItems = [
-    { label: "Collections", key: "collections" },
-    { label: "New Arrivals", key: "newArrivals" },
-    { label: "Orders", key: "orders" },
-    { label: "About", key: "about" },
-  ];
+  const navItems = hideNavItems
+    ? []
+    : [
+        { label: "Collections", key: "collections" },
+        { label: "New Arrivals", key: "newArrivals" },
+        { label: "Orders", key: "orders" },
+        { label: "About", key: "about" },
+      ];
 
   const handleNavClick = (item) => {
     if (item.key === "collections") onCollectionsClick?.();
