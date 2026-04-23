@@ -51,7 +51,7 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const [authModal, setAuthModal] = useState(null); // null | "login" | "register"
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => loadStoredUser());
   const [ordersModal, setOrdersModal] = useState(null); // null | "guest" | "user"
   const [orderLookupNumber, setOrderLookupNumber] = useState("");
   const [products, setProducts] = useState([]);
@@ -70,7 +70,6 @@ function App() {
   };
 
   useEffect(() => {
-    setUser(loadStoredUser());
     loadProducts();
   }, []);
 
