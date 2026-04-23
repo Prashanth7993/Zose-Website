@@ -114,7 +114,7 @@ const parseJsonField = (value, fallback) => {
   }
 };
 
-const sanitizeProduct = (product) => ({
+const sanitizePublicProduct = (product) => ({
   id: product.id,
   name: product.name,
   description: product.description,
@@ -123,6 +123,10 @@ const sanitizeProduct = (product) => ({
   sizes: parseJsonField(product.sizes_json, []),
   images: parseJsonField(product.images_json, []),
   colorImageMap: parseJsonField(product.color_image_map_json, {}),
+});
+
+const sanitizeAdminProduct = (product) => ({
+  ...sanitizePublicProduct(product),
   createdBy: product.created_by,
   createdAt: product.created_at,
   updatedAt: product.updated_at,
@@ -278,7 +282,7 @@ app.get("/api/products", async (_req, res) => {
   try {
     const products = await db.all("SELECT * FROM products ORDER BY id DESC");
     return res.json({
-      products: products.map(sanitizeProduct),
+      products: products.map(sanitizePublicProduct),
     });
   } catch (error) {
     console.error("Fetch products error:", error);
@@ -290,7 +294,7 @@ app.get("/api/admin/products", requireAuth, requireAdmin, async (_req, res) => {
   try {
     const products = await db.all("SELECT * FROM products ORDER BY id DESC");
     return res.json({
-      products: products.map(sanitizeProduct),
+      products: products.map(sanitizeAdminProduct),
     });
   } catch (error) {
     console.error("Fetch admin products error:", error);
@@ -348,7 +352,7 @@ app.post("/api/admin/products", requireAuth, requireAdmin, async (req, res) => {
 
     return res.status(201).json({
       message: "Product saved successfully.",
-      product: sanitizeProduct(createdProduct),
+      product: sanitizeAdminProduct(createdProduct),
     });
   } catch (error) {
     console.error("Admin product save error:", error);
