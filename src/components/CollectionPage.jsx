@@ -50,7 +50,8 @@ export default function CollectionPage({ products = [], isLoading = false }) {
       if (selectedFits.length && !selectedFits.includes(product.fit)) return false;
       if (selectedColors.length && !selectedColors.some((color) => product.colors?.includes(color))) return false;
       if (selectedGender.length && !selectedGender.includes(product.gender)) return false;
-      if (selectedSizes.length && !selectedSizes.includes(product.size)) return false;
+      const productSizes = Array.isArray(product.sizes) ? product.sizes : [];
+      if (selectedSizes.length && !selectedSizes.some((size) => productSizes.includes(size))) return false;
       if (onlyOffers && product.offerPrice >= product.originalPrice) return false;
       if (onlyNewArrivals && !product.isNewArrival) return false;
       return true;

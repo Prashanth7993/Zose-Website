@@ -81,10 +81,10 @@ export default function DubaiShowcaseSection() {
             ) : (
               <div className="w-full h-full flex items-end p-6 sm:p-8 lg:p-10 transition-all duration-500">
                 <img src={activeItem.src} alt={activeItem.title} className="absolute inset-0 w-full h-full object-cover" />
-                <div className="bg-white/85 backdrop-blur-sm rounded-xl p-4 sm:p-5 max-w-md border border-[#C9A14A]/20">
+                {/* <div className="bg-white/85 backdrop-blur-sm rounded-xl p-4 sm:p-5 max-w-md border border-[#C9A14A]/20">
                   <h3 className="text-lg sm:text-xl font-semibold text-[#0A0A0A] mb-1">{activeItem.title}</h3>
                   <p className="text-[12px] sm:text-[13px] text-[#333333]">{activeItem.subtitle}</p>
-                </div>
+                </div> */}
               </div>
             )}
           </div>

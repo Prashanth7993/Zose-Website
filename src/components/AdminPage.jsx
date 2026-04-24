@@ -683,13 +683,13 @@ export default function AdminPage({ onUnauthorized, onProductSaved, onOrdersClic
         >
           Products
         </button>
-        <button
+        {/* <button
           type="button"
           onClick={onOrdersClick}
           className="rounded-full border border-[#C9A14A]/40 hover:border-[#C9A14A] text-[#0A0A0A] px-5 py-2.5 text-[11px] tracking-[0.12em] uppercase font-semibold"
         >
           Orders
-        </button>
+        </button> */}
         <button
           type="button"
           onClick={() => navigate("/admin/upload")}

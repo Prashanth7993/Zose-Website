@@ -35,10 +35,12 @@ export const loginUser = async (payload) => {
   return parseResponse(response);
 };
 
-export const loadStoredToken = () => window.localStorage.getItem(TOKEN_STORAGE_KEY);
+const getStorage = () => window.sessionStorage;
+
+export const loadStoredToken = () => getStorage().getItem(TOKEN_STORAGE_KEY);
 
 export const loadStoredUser = () => {
-  const rawValue = window.localStorage.getItem(USER_STORAGE_KEY);
+  const rawValue = getStorage().getItem(USER_STORAGE_KEY);
 
   if (!rawValue) {
     return null;
@@ -47,27 +49,27 @@ export const loadStoredUser = () => {
   try {
     return JSON.parse(rawValue);
   } catch {
-    window.localStorage.removeItem(USER_STORAGE_KEY);
+    getStorage().removeItem(USER_STORAGE_KEY);
     return null;
   }
 };
 
 export const storeUser = (user) => {
-  window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user || null));
+  getStorage().setItem(USER_STORAGE_KEY, JSON.stringify(user || null));
 };
 
 export const storeAuthSession = ({ user, token }) => {
   storeUser(user);
   if (token) {
-    window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    getStorage().setItem(TOKEN_STORAGE_KEY, token);
   } else {
-    window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+    getStorage().removeItem(TOKEN_STORAGE_KEY);
   }
 };
 
 export const clearStoredSession = () => {
-  window.localStorage.removeItem(USER_STORAGE_KEY);
-  window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+  getStorage().removeItem(USER_STORAGE_KEY);
+  getStorage().removeItem(TOKEN_STORAGE_KEY);
 };
 
 // Backward-compatible alias used by existing app code.

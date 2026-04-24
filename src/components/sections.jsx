@@ -91,6 +91,7 @@ export function CollectionsSection({
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const normalizedCustomerPhone = customerPhone.replace(/\D/g, "");
 
   const getColorImageMap = (product) =>
     product?.colorImageMap && typeof product.colorImageMap === "object" ? product.colorImageMap : {};
@@ -146,7 +147,7 @@ export function CollectionsSection({
       `Product: ${selectedProduct.name}`,
       `Description: ${selectedProduct.desc}`,
       `Customer Name: ${customerName || "Not provided"}`,
-      `Customer Phone: ${customerPhone || "Not provided"}`,
+      `Customer Phone: ${normalizedCustomerPhone ? `+971${normalizedCustomerPhone}` : "Not provided"}`,
       `Customer Address: ${customerAddress || "Not provided"}`,
       `Color: ${selectedColor}`,
       `Size: ${selectedSize}`,
@@ -397,6 +398,18 @@ export function CollectionsSection({
                     {Math.round(((selectedProduct.originalPrice - selectedProduct.offerPrice) / selectedProduct.originalPrice) * 100)}% OFF
                     </p>
                   </div>
+                  <div className="mt-2">
+                    <p className="text-[10px] tracking-[0.12em] uppercase text-[#777777]">Delivery</p>
+                    <div className="mt-1 flex items-center gap-2 text-[12px] text-[#333333]">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 text-[#C9A14A]" fill="none" aria-hidden="true">
+                        <path d="M3 6h11v8H3z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M14 10h3l3 3v1h-6z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                        <circle cx="8" cy="17" r="2" stroke="currentColor" strokeWidth="1.7" />
+                        <circle cx="18" cy="17" r="2" stroke="currentColor" strokeWidth="1.7" />
+                      </svg>
+                      <span>2-3 Working Days</span>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <p className="text-[12px] tracking-[0.16em] uppercase text-[#C9A14A] mb-1 font-semibold">Quantity</p>
@@ -419,13 +432,18 @@ export function CollectionsSection({
                   placeholder="Your name"
                   className="border border-[#C9A14A]/30 rounded-lg px-3 py-2.5 text-[12px] text-[#0A0A0A] outline-none focus:border-[#C9A14A]"
                 />
-                <input
-                  type="tel"
-                  value={customerPhone}
-                  onChange={(event) => setCustomerPhone(event.target.value)}
-                  placeholder="Your phone number"
-                  className="border border-[#C9A14A]/30 rounded-lg px-3 py-2.5 text-[12px] text-[#0A0A0A] outline-none focus:border-[#C9A14A]"
-                />
+                <div className="flex items-center rounded-lg border border-[#C9A14A]/30 overflow-hidden focus-within:border-[#C9A14A]">
+                  <span className="bg-[#f7f6f1] border-r border-[#C9A14A]/20 px-3 py-2.5 text-[12px] text-[#555555] select-none">
+                    +971
+                  </span>
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(event) => setCustomerPhone(event.target.value.replace(/\D/g, ""))}
+                    placeholder="501234567"
+                    className="w-full px-3 py-2.5 text-[12px] text-[#0A0A0A] outline-none"
+                  />
+                </div>
                 <textarea
                   value={customerAddress}
                   onChange={(event) => setCustomerAddress(event.target.value)}
@@ -467,7 +485,7 @@ export function TrustSection() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 sm:gap-4 mb-8 sm:mb-10 lg:mb-12">
           <div className="flex-1 h-px bg-[#C9A14A]/15" />
-          <span className="text-[10px] sm:text-[11px] tracking-[0.22em] uppercase text-[#333333] whitespace-nowrap">UAE Trusted Brand</span>
+          <span className="text-[13px] sm:text-[15px] font-semibold tracking-[0.22em] uppercase text-[#333333] whitespace-nowrap">UAE Trusted Brand</span>
           <div className="flex-1 h-px bg-[#C9A14A]/15" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
@@ -476,8 +494,8 @@ export function TrustSection() {
               <div className="w-10 sm:w-11 lg:w-12 h-10 sm:h-11 lg:h-12 border border-[#C9A14A]/25 flex items-center justify-center text-lg sm:text-xl mx-auto mb-3 sm:mb-4">
                 {item.icon}
               </div>
-              <h4 className="text-[12px] sm:text-[13px] font-medium text-[#0A0A0A] mb-1 sm:mb-2">{item.title}</h4>
-              <p className="text-[11px] sm:text-[12px] text-[#333333] leading-relaxed">{item.desc}</p>
+              <h4 className="text-[15px] sm:text-[17px] font-medium text-[#0A0A0A] mb-1 sm:mb-2">{item.title}</h4>
+              <p className="text-[14px] sm:text-[16px] text-[#333333] leading-relaxed">{item.desc}</p>
             </div>
           ))}
         </div>
@@ -501,30 +519,30 @@ export function NewsletterSection() {
       }}
     >
       <div className="max-w-lg mx-auto">
-        <p className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-[#C9A14A] mb-3 sm:mb-4">Stay in the Loop</p>
+        <p className="text-[13px] sm:text-[15px] font-semibold tracking-[0.2em] uppercase text-[#C9A14A] mb-3 sm:mb-4">Stay in the Loop</p>
         <h2
-          className="text-2xl sm:text-3xl lg:text-[36px] font-light text-[#0A0A0A] mb-2 sm:mb-3"
+          className="text-2xl sm:text-3xl lg:text-[36px] font-semibold text-[#0A0A0A] mb-2 sm:mb-3"
           style={{ fontFamily: "'Cormorant Garamond', serif" }}
         >
           Join the Zose Circle
         </h2>
-        <p className="text-[12px] sm:text-[13px] lg:text-[14px] text-[#333333] leading-relaxed mb-6 sm:mb-9 px-2">
+        <p className="text-[14px] sm:text-[16px] lg:text-[17px] text-[#333333] leading-relaxed mb-6 sm:mb-9 px-2">
           Get early access to new collections, exclusive UAE deals, and style inspiration.
         </p>
         <div className="flex flex-col sm:flex-row border border-[#C9A14A]/20 rounded-lg overflow-hidden">
           <input
             type="email"
             placeholder="Your email address"
-            className="flex-1 bg-transparent px-4 sm:px-5 py-3 sm:py-3.5 text-[12px] sm:text-[13px] text-[#0A0A0A] placeholder:text-[#777] outline-none border-b sm:border-b-0 sm:border-r border-[#C9A14A]/20 focus:border-[#C9A14A]/40 transition-colors"
+            className="flex-1 bg-transparent px-4 sm:px-5 py-3 sm:py-3.5 text-[14px] sm:text-[13px] text-[#0A0A0A] placeholder:text-[#777] outline-none border-b sm:border-b-0 sm:border-r border-[#C9A14A]/20 focus:border-[#C9A14A]/40 transition-colors"
           />
           <button className="bg-[#C9A14A] hover:bg-[#E8C97A] text-[#0A0A0A] text-[10px] sm:text-[11px] font-semibold tracking-[0.14em] uppercase px-4 sm:px-7 py-3 sm:py-3.5 transition-colors whitespace-nowrap">
             Subscribe
           </button>
         </div>
-        <p className="text-[10px] sm:text-[11px] text-[#333333] mt-3 tracking-wide">
+        <p className="text-[14px] sm:text-[16px] text-[#333333] mt-3 tracking-wide">
           No spam. Unsubscribe anytime. 🇦🇪
         </p>
-        <p className="text-[10px] sm:text-[11px] text-[#333333] mt-3 tracking-wide">
+        <p className="text-[14px] sm:text-[14px] text-[#333333] mt-3 tracking-wide">
           Need help?{" "}
           <a href={`mailto:${supportEmail}`} className="text-[#C9A14A] hover:text-[#0A0A0A] transition-colors">
             {supportEmail}
@@ -548,19 +566,19 @@ export function Footer() {
   const supportPhone = "+971 502533578";
 
   return (
-    <footer className="bg-[#f8f9fb] border-t border-[#C9A14A]/20 px-4 sm:px-6 lg:px-12 pt-8 sm:pt-10 lg:pt-12 pb-6 sm:pb-7 lg:pb-8">
+    <footer className="bg-[#f8f9fb] border-t border-[#C9A14A]/20 px-4 sm:px-6 lg:px-12 pt-8 sm:pt-10 lg:pt-12 pb-6 sm:pb-7 lg:pb-8 text-[14px] sm:text-[16px]">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10 mb-8 sm:mb-10 lg:mb-12">
           <div className="col-span-2 lg:col-span-1">
             <img src={zoseLogo} alt="ZOSE logo" className="h-10 sm:h-12 w-auto mb-3 sm:mb-4" />
-            <p className="text-[12px] sm:text-[13px] text-[#333333] leading-relaxed max-w-[200px]">
+            <p className="text-[14px] sm:text-[16px] text-[#333333] leading-relaxed max-w-[200px]">
               Premium T-shirts for the UAE lifestyle. Quality crafted, UAE trusted.
             </p>
             <div className="flex gap-2 mt-4 sm:mt-5">
               {["in", "ig", "tw"].map((s) => (
                 <div
                   key={s}
-                  className="w-7 sm:w-8 h-7 sm:h-8 border border-[#C9A14A]/20 flex items-center justify-center text-[11px] text-[#333333] cursor-pointer hover:border-[#C9A14A]/50 hover:text-[#C9A14A] transition-all"
+                  className="w-9 sm:w-10 h-9 sm:h-10 border border-[#C9A14A]/20 flex items-center justify-center text-[13px] sm:text-[15px] text-[#333333] cursor-pointer hover:border-[#C9A14A]/50 hover:text-[#C9A14A] transition-all"
                 >
                   {s}
                 </div>
@@ -574,7 +592,7 @@ export function Footer() {
             { title: "Contact", links: ["Dubai, UAE", supportEmail, supportPhone] },
           ].map((col) => (
             <div key={col.title}>
-              <h4 className="text-[10px] sm:text-[11px] tracking-[0.18em] uppercase text-[#0A0A0A] mb-3 sm:mb-4 lg:mb-5 font-medium">
+              <h4 className="text-[14px] sm:text-[16px] font-semibold tracking-[0.18em] uppercase text-[#0A0A0A] mb-3 sm:mb-4 lg:mb-5 font-medium">
                 {col.title}
               </h4>
               <div className="flex flex-col gap-2 sm:gap-2.5 lg:gap-3">
@@ -607,11 +625,11 @@ export function Footer() {
         </div>
 
         <div className="h-px bg-gradient-to-r from-transparent via-[#C9A14A]/20 to-transparent mb-4 sm:mb-5 lg:mb-6" />
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-2 text-center sm:text-left">
-          <p className="text-[11px] sm:text-[12px] text-[#333333]">© 2025 Zose. All rights reserved. UAE Licensed.</p>
-          <div className="flex gap-4 sm:gap-6">
+        <div className="flex flex-col items-center justify-center gap-3 sm:gap-2 text-center sm:text-left">
+          <p className="text-[14px] sm:text-[16px] text-[#333333]">© 2025 Zose. All rights reserved. UAE Licensed.</p>
+          <div className="flex items-center justify-center gap-4 sm:gap-6">
             {["Privacy", "Terms"].map((l) => (
-              <span key={l} className="text-[11px] sm:text-[12px] text-[#333333] hover:text-[#0A0A0A] cursor-pointer transition-colors">
+              <span key={l} className="text-[14px] sm:text-[16px] text-[#333333] hover:text-[#0A0A0A] cursor-pointer transition-colors">
                 {l}
               </span>
             ))}
