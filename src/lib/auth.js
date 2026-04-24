@@ -120,7 +120,7 @@ export const deleteAdminProduct = async (productId) =>
 
 export const uploadAdminImages = async (files) => {
   const token = loadStoredToken();
-  const formData = new FormData();
+  const formData = new window.FormData();
   files.forEach((file) => formData.append("images", file));
 
   const response = await fetch("/api/admin/uploads", {
