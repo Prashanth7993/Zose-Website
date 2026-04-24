@@ -2,7 +2,11 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { mkdirSync } from "node:fs";
+import { dirname, extname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import jwt from "jsonwebtoken";
+import multer from "multer";
 import { migrateDatabase } from "./db.js";
 
 const PORT = Number(process.env.PORT || 5000);
@@ -133,10 +137,28 @@ const sanitizeAdminProduct = (product) => ({
 });
 
 const db = await migrateDatabase();
+const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
+const BACKEND_DIR = resolve(CURRENT_DIR, "..");
+const UPLOADS_DIR = resolve(BACKEND_DIR, "uploads");
+mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const uploadsStorage = multer.diskStorage({
+  destination: (_req, _file, callback) => callback(null, UPLOADS_DIR),
+  filename: (_req, file, callback) => {
+    const extension = extname(file.originalname || "").toLowerCase();
+    callback(null, `${Date.now()}-${randomBytes(4).toString("hex")}${extension}`);
+  },
+});
+
+const upload = multer({
+  storage: uploadsStorage,
+  limits: { fileSize: 20 * 1024 * 1024 },
+});
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use("/uploads", express.static(UPLOADS_DIR));
 app.use((req, res, next) => {
   const startedAt = Date.now();
 
@@ -302,6 +324,17 @@ app.get("/api/admin/products", requireAuth, requireAdmin, async (_req, res) => {
   }
 });
 
+app.post("/api/admin/uploads", requireAuth, requireAdmin, upload.array("images", 30), async (req, res) => {
+  const files = Array.isArray(req.files) ? req.files : [];
+  return res.status(201).json({
+    files: files.map((file) => ({
+      fileName: file.originalname,
+      storedName: file.filename,
+      url: `/uploads/${file.filename}`,
+    })),
+  });
+});
+
 app.post("/api/admin/products", requireAuth, requireAdmin, async (req, res) => {
   const name = String(req.body?.name || "").trim();
   const description = String(req.body?.description || "").trim();
@@ -358,6 +391,104 @@ app.post("/api/admin/products", requireAuth, requireAdmin, async (req, res) => {
     console.error("Admin product save error:", error);
     return res.status(500).json({ message: "Unable to save product right now." });
   }
+});
+
+app.put("/api/admin/products/:id", requireAuth, requireAdmin, async (req, res) => {
+  const productId = Number(req.params.id);
+  const name = String(req.body?.name || "").trim();
+  const description = String(req.body?.description || "").trim();
+  const actualPrice = Number(req.body?.actualPrice);
+  const offerPrice = Number(req.body?.offerPrice);
+  const sizes = Array.isArray(req.body?.sizes) ? req.body.sizes : [];
+  const images = Array.isArray(req.body?.images) ? req.body.images : [];
+  const colorImageMap = req.body?.colorImageMap && typeof req.body.colorImageMap === "object"
+    ? req.body.colorImageMap
+    : {};
+
+  if (!Number.isFinite(productId) || productId <= 0) {
+    return res.status(400).json({ message: "Invalid product id." });
+  }
+  if (!name) {
+    return res.status(400).json({ message: "Product name is required." });
+  }
+  if (!description) {
+    return res.status(400).json({ message: "Product description is required." });
+  }
+  if (!Number.isFinite(actualPrice) || actualPrice <= 0) {
+    return res.status(400).json({ message: "Actual price must be greater than 0." });
+  }
+  if (!Number.isFinite(offerPrice) || offerPrice < 0 || offerPrice > actualPrice) {
+    return res.status(400).json({ message: "Offer price must be between 0 and actual price." });
+  }
+  if (!sizes.length) {
+    return res.status(400).json({ message: "Select at least one size." });
+  }
+
+  try {
+    const result = await db.run(
+      `UPDATE products
+      SET name = ?, description = ?, actual_price = ?, offer_price = ?, sizes_json = ?, images_json = ?, color_image_map_json = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?`,
+      [
+        name,
+        description,
+        actualPrice,
+        offerPrice,
+        JSON.stringify(sizes),
+        JSON.stringify(images),
+        JSON.stringify(colorImageMap),
+        productId,
+      ]
+    );
+
+    if (!result?.changes) {
+      return res.status(404).json({ message: "Product not found." });
+    }
+
+    const updatedProduct = await db.get("SELECT * FROM products WHERE id = ?", [productId]);
+    return res.json({
+      message: "Product updated successfully.",
+      product: sanitizeAdminProduct(updatedProduct),
+    });
+  } catch (error) {
+    console.error("Admin product update error:", error);
+    return res.status(500).json({ message: "Unable to update product right now." });
+  }
+});
+
+app.delete("/api/admin/products/:id", requireAuth, requireAdmin, async (req, res) => {
+  const productId = Number(req.params.id);
+
+  if (!Number.isFinite(productId) || productId <= 0) {
+    return res.status(400).json({ message: "Invalid product id." });
+  }
+
+  try {
+    const result = await db.run("DELETE FROM products WHERE id = ?", [productId]);
+    if (!result?.changes) {
+      return res.status(404).json({ message: "Product not found." });
+    }
+    return res.json({ message: "Product deleted successfully." });
+  } catch (error) {
+    console.error("Admin product delete error:", error);
+    return res.status(500).json({ message: "Unable to delete product right now." });
+  }
+});
+
+app.use((error, _req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({ message: "Image is too large. Max allowed size is 20MB per image." });
+    }
+    return res.status(400).json({ message: error.message || "Upload failed." });
+  }
+
+  if (error) {
+    console.error("Unhandled server error:", error);
+    return res.status(500).json({ message: "Unexpected server error." });
+  }
+
+  return next();
 });
 
 app.listen(PORT, () => {

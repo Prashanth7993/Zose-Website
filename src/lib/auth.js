@@ -104,6 +104,34 @@ export const createAdminProduct = async (payload) =>
     body: JSON.stringify(payload),
   });
 
+export const updateAdminProduct = async (productId, payload) =>
+  authFetch(`/api/admin/products/${productId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+export const deleteAdminProduct = async (productId) =>
+  authFetch(`/api/admin/products/${productId}`, {
+    method: "DELETE",
+  });
+
+export const uploadAdminImages = async (files) => {
+  const token = loadStoredToken();
+  const formData = new FormData();
+  files.forEach((file) => formData.append("images", file));
+
+  const response = await fetch("/api/admin/uploads", {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+
+  return parseResponse(response);
+};
+
 export const fetchProducts = async () => {
   const response = await fetch("/api/products");
   return parseResponse(response);

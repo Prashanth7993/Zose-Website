@@ -24,6 +24,7 @@ const mapApiProductToCard = (product) => ({
   offerPrice: Number(product.offerPrice),
   sizes: Array.isArray(product.sizes) ? product.sizes : [],
   images: Array.isArray(product.images) ? product.images : [],
+  colorImageMap: product.colorImageMap && typeof product.colorImageMap === "object" ? product.colorImageMap : {},
   colors: product.colorImageMap ? Object.keys(product.colorImageMap) : [],
   badge: "Collection",
   tag: null,

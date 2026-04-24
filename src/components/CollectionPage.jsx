@@ -27,8 +27,8 @@ export default function CollectionPage({ products = [], isLoading = false }) {
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [onlyOffers, setOnlyOffers] = useState(false);
   const [onlyNewArrivals, setOnlyNewArrivals] = useState(false);
-  const [minPrice, setMinPrice] = useState(120);
-  const [maxPrice, setMaxPrice] = useState(260);
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(10000);
 
   const enrichedProducts = useMemo(
     () =>
@@ -36,6 +36,7 @@ export default function CollectionPage({ products = [], isLoading = false }) {
         ...item,
         fit: fitOptions[index % fitOptions.length],
         color: item.colors?.[0] || colorOptions[index % colorOptions.length],
+        colors: Array.isArray(item.colors) ? item.colors : [],
         gender: genderOptions[index % genderOptions.length],
         size: item.sizes?.[0] || sizeOptions[index % sizeOptions.length],
         isNewArrival: item.badge === "New Arrival",
@@ -47,7 +48,7 @@ export default function CollectionPage({ products = [], isLoading = false }) {
     const output = enrichedProducts.filter((product) => {
       if (product.offerPrice < minPrice || product.offerPrice > maxPrice) return false;
       if (selectedFits.length && !selectedFits.includes(product.fit)) return false;
-      if (selectedColors.length && !selectedColors.includes(product.color)) return false;
+      if (selectedColors.length && !selectedColors.some((color) => product.colors?.includes(color))) return false;
       if (selectedGender.length && !selectedGender.includes(product.gender)) return false;
       if (selectedSizes.length && !selectedSizes.includes(product.size)) return false;
       if (onlyOffers && product.offerPrice >= product.originalPrice) return false;
@@ -59,6 +60,19 @@ export default function CollectionPage({ products = [], isLoading = false }) {
     if (sortBy === "price_high_low") return output.sort((a, b) => b.offerPrice - a.offerPrice);
     return output.sort((a, b) => b.id - a.id);
   }, [enrichedProducts, minPrice, maxPrice, selectedFits, selectedColors, selectedGender, selectedSizes, onlyOffers, onlyNewArrivals, sortBy]);
+
+  const priceBounds = useMemo(() => {
+    const prices = enrichedProducts.map((product) => Number(product.offerPrice)).filter((price) => Number.isFinite(price));
+    if (!prices.length) return { min: 0, max: 10000 };
+    const min = Math.max(0, Math.floor(Math.min(...prices)));
+    const max = Math.max(min + 1, Math.ceil(Math.max(...prices)));
+    return { min, max };
+  }, [enrichedProducts]);
+
+  useEffect(() => {
+    setMinPrice(priceBounds.min);
+    setMaxPrice(priceBounds.max);
+  }, [priceBounds.min, priceBounds.max]);
 
   const sortLabel =
     sortBy === "price_low_high"
@@ -90,7 +104,7 @@ export default function CollectionPage({ products = [], isLoading = false }) {
         </h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[270px_1fr] gap-6 lg:gap-8">
         <div className="lg:hidden">
           <button
             type="button"
@@ -167,16 +181,16 @@ export default function CollectionPage({ products = [], isLoading = false }) {
             <div className="space-y-2">
               <input
                 type="range"
-                min="100"
-                max="300"
+                min={priceBounds.min}
+                max={priceBounds.max}
                 value={minPrice}
                 onChange={(e) => setMinPrice(Math.min(Number(e.target.value), maxPrice - 1))}
                 className="w-full accent-[#C9A14A]"
               />
               <input
                 type="range"
-                min="100"
-                max="300"
+                min={priceBounds.min}
+                max={priceBounds.max}
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(Math.max(Number(e.target.value), minPrice + 1))}
                 className="w-full accent-[#C9A14A]"
@@ -259,10 +273,10 @@ export default function CollectionPage({ products = [], isLoading = false }) {
           <CollectionsSection
             showHeader={false}
             products={filteredProducts}
-            gridClassName="grid grid-cols-1 md:grid-cols-2 gap-7 sm:gap-8"
-            imageClassName="h-64 sm:h-72"
-            titleClassName="text-2xl sm:text-[30px]"
-            descriptionClassName="text-[14px] sm:text-[15px]"
+            gridClassName="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6"
+            imageClassName="h-48 sm:h-52"
+            titleClassName="text-xl sm:text-2xl"
+            descriptionClassName="text-[12px] sm:text-[13px]"
           />
         </div>
       </div>

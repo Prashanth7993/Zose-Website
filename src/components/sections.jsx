@@ -70,14 +70,6 @@ export function CollectionsSection({
   descriptionClassName = "text-[11px] sm:text-[12px] lg:text-[13px]",
 }) {
   const colorOptions = ["Black", "White", "Merun", "Sky blue", "Bottle green", "Navy blue"];
-  const colorPreviewStyles = {
-    Black: { filter: "brightness(0.32) saturate(0.8) contrast(1.18)" },
-    White: { filter: "brightness(1.32) saturate(0.08) contrast(0.88)" },
-    Merun: { filter: "hue-rotate(315deg) saturate(2.8) brightness(0.78) contrast(1.15)" },
-    "Sky blue": { filter: "hue-rotate(168deg) saturate(2.9) brightness(1.02) contrast(1.08)" },
-    "Bottle green": { filter: "hue-rotate(88deg) saturate(2.5) brightness(0.72) contrast(1.14)" },
-    "Navy blue": { filter: "hue-rotate(198deg) saturate(2.3) brightness(0.5) contrast(1.22)" },
-  };
   const sizeOptions = ["M", "L", "XL", "2XL", "3XL"];
   const sizeChart = useMemo(
     () => [
@@ -98,6 +90,25 @@ export function CollectionsSection({
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  const getColorImageMap = (product) =>
+    product?.colorImageMap && typeof product.colorImageMap === "object" ? product.colorImageMap : {};
+
+  const getImagesForColor = (product, color) => {
+    const colorImageMap = getColorImageMap(product);
+    const mapped = colorImageMap[color];
+    if (Array.isArray(mapped)) return mapped.filter(Boolean);
+    if (typeof mapped === "string" && mapped) return [mapped];
+    return Array.isArray(product.images) ? product.images : [];
+  };
+
+  const getDisplayImage = (product, color) => getImagesForColor(product, color)[0] || geminiTshirtImage;
+  const resolveProductImageSrc = (image) => {
+    if (!image) return geminiTshirtImage;
+    if (/^(https?:|data:|blob:|\/)/i.test(image)) return image;
+    return `/uploads/${encodeURIComponent(image)}`;
+  };
   const normalizedProducts = products.map((product, index) => ({
     id: product.id ?? index + 1,
     badge: product.badge || "Collection",
@@ -109,11 +120,13 @@ export function CollectionsSection({
     colors: Array.isArray(product.colors) ? product.colors : colorOptions,
     sizes: Array.isArray(product.sizes) && product.sizes.length ? product.sizes : sizeOptions,
     images: Array.isArray(product.images) ? product.images : [],
+    colorImageMap: product.colorImageMap && typeof product.colorImageMap === "object" ? product.colorImageMap : {},
   }));
 
   const openOrderPopup = (product) => {
     setSelectedProduct(product);
     setSelectedColor(product.colors?.[0] || colorOptions[0]);
+    setSelectedImageIndex(0);
     setSelectedSize(product.sizes?.[0] || sizeOptions[0]);
     setQuantity(1);
     setCustomerName("");
@@ -172,7 +185,7 @@ export function CollectionsSection({
           {normalizedProducts.map((col) => (
             <div
               key={col.id}
-              className="bg-white border border-[#C9A14A]/20 hover:border-[#C9A14A]/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden rounded-2xl max-w-[320px] mx-auto w-full"
+              className="bg-white border border-[#C9A14A]/20 hover:border-[#C9A14A]/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden rounded-2xl w-full"
             >
               <div className={`${imageClassName} bg-gradient-to-br ${col.accent} border-b border-[#C9A14A]/10 relative overflow-hidden rounded-t-2xl`}>
                 {col.tag && (
@@ -180,12 +193,14 @@ export function CollectionsSection({
                     {col.tag}
                   </span>
                 )}
-                <div className="absolute inset-0 bg-black/20 z-10" />
                 <div className="absolute inset-0 z-0 p-3 bg-white/85">
                   <img
-                    src={geminiTshirtImage}
+                    src={resolveProductImageSrc(getDisplayImage(col, col.colors?.[0]))}
                     alt={`${col.name} preview`}
                     className="absolute inset-0 h-full w-full object-contain"
+                    onError={(event) => {
+                      event.currentTarget.src = geminiTshirtImage;
+                    }}
                   />
                 </div>
               </div>
@@ -198,15 +213,22 @@ export function CollectionsSection({
                 >
                   {col.name}
                 </h3>
-                <p className={`${descriptionClassName} text-[#333333] leading-relaxed mb-4 sm:mb-5`}>{col.desc}</p>
+                <p className={`${descriptionClassName} text-[#333333] leading-relaxed mb-3 line-clamp-2`}>{col.desc}</p>
+                <p className="text-[10px] text-[#666666] mb-3">
+                  Colors: {col.colors?.length || 0} · Sizes: {(col.sizes || []).join(", ")}
+                </p>
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[14px] sm:text-[15px] text-[#333333]/60 line-through">AED {col.originalPrice}</span>
-                    <span className="text-[13px] sm:text-[14px] text-[#C9A14A] font-semibold">AED</span>
-                    <span className="text-[15px] sm:text-[16px] leading-none text-[#C9A14A]" style={{ fontFamily: "'Outfit', sans-serif" }}>{col.offerPrice}</span>
-                    <span className="text-[12px] sm:text-[13px] font-semibold text-emerald-600">
-                      {Math.round(((col.originalPrice - col.offerPrice) / col.originalPrice) * 100)}% OFF
-                    </span>
+                  <div>
+                    <p className="text-[13px] sm:text-[14px] text-[#333333]/60 line-through">AED {col.originalPrice}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[13px] sm:text-[14px] text-[#C9A14A] font-semibold">AED</span>
+                      <span className="text-[15px] sm:text-[16px] leading-none text-[#C9A14A]" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                        {col.offerPrice}
+                      </span>
+                      <span className="text-[12px] sm:text-[13px] font-semibold text-emerald-600">
+                        {Math.round(((col.originalPrice - col.offerPrice) / col.originalPrice) * 100)}% OFF
+                      </span>
+                    </div>
                   </div>
                   <button
                     onClick={() => openOrderPopup(col)}
@@ -245,20 +267,75 @@ export function CollectionsSection({
               <div className="rounded-xl border border-[#C9A14A]/20 overflow-hidden bg-[#f7f8fb]">
                 <div className="relative aspect-[4/3] sm:aspect-[16/10]">
                   <img
-                    src={geminiTshirtImage}
+                    src={resolveProductImageSrc(getImagesForColor(selectedProduct, selectedColor)[selectedImageIndex] || geminiTshirtImage)}
                     alt={`${selectedProduct.name} in ${selectedColor}`}
                     className="absolute inset-0 h-full w-full object-contain transition-all duration-300"
-                    style={colorPreviewStyles[selectedColor] || {}}
+                    onError={(event) => {
+                      event.currentTarget.src = geminiTshirtImage;
+                    }}
                   />
+                  {getImagesForColor(selectedProduct, selectedColor).length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedImageIndex((current) =>
+                            (current - 1 + getImagesForColor(selectedProduct, selectedColor).length) %
+                            getImagesForColor(selectedProduct, selectedColor).length
+                          )
+                        }
+                        className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 border border-[#C9A14A]/30 h-8 w-8 text-[#333333]"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedImageIndex((current) =>
+                            (current + 1) % getImagesForColor(selectedProduct, selectedColor).length
+                          )
+                        }
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 border border-[#C9A14A]/30 h-8 w-8 text-[#333333]"
+                      >
+                        ›
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
+              {!!getImagesForColor(selectedProduct, selectedColor).length && (
+                <div className="flex flex-wrap gap-2">
+                  {getImagesForColor(selectedProduct, selectedColor).map((image, index) => (
+                    <button
+                      key={`${selectedColor}-${image}-${index}`}
+                      type="button"
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`h-14 w-14 rounded-md overflow-hidden border ${
+                        index === selectedImageIndex ? "border-[#C9A14A]" : "border-[#C9A14A]/30"
+                      }`}
+                    >
+                      <img
+                        src={resolveProductImageSrc(image)}
+                        alt={`${selectedProduct.name} ${selectedColor} ${index + 1}`}
+                        className="h-full w-full object-cover"
+                        onError={(event) => {
+                          event.currentTarget.src = geminiTshirtImage;
+                        }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
               <div>
                 <p className="text-[12px] tracking-[0.16em] uppercase text-[#C9A14A] mb-2 font-semibold">Available Colors</p>
                 <div className="flex flex-wrap gap-2">
                   {(selectedProduct.colors?.length ? selectedProduct.colors : colorOptions).map((color) => (
                     <button
                       key={color}
-                      onClick={() => setSelectedColor(color)}
+                      onClick={() => {
+                        setSelectedColor(color);
+                        setSelectedImageIndex(0);
+                      }}
                       className={`px-3 py-1.5 rounded-full border text-[11px] ${
                         selectedColor === color
                           ? "bg-[#C9A14A] text-[#0A0A0A] border-[#C9A14A]"

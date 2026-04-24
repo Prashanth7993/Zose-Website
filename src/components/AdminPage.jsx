@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { createAdminProduct, fetchAdminProducts, validateAdminSession } from "../lib/auth";
+import {
+  createAdminProduct,
+  deleteAdminProduct,
+  fetchAdminProducts,
+  updateAdminProduct,
+  uploadAdminImages,
+  validateAdminSession,
+} from "../lib/auth";
 
 const colorOptions = ["Black", "White", "Merun", "Sky blue", "Bottle green", "Navy blue"];
 const sizeOptions = ["M", "L", "XL", "2XL", "3XL"];
@@ -47,7 +54,6 @@ function PriceInputs({ actualPrice, offerPrice, onActualChange, onOfferChange })
 function UploadProductPage({
   actualPrice,
   offerPrice,
-  colorImageMap,
   isSaving,
   productDescription,
   productName,
@@ -56,14 +62,24 @@ function UploadProductPage({
   selectedSizes,
   uploadedImages,
   onActualPriceChange,
-  onColorMapChange,
   onDescriptionChange,
+  onImageColorChange,
   onImageUpload,
   onOfferPriceChange,
   onProductNameChange,
   onSave,
   onToggleSize,
 }) {
+  const [previewIndex, setPreviewIndex] = useState(0);
+
+  useEffect(() => {
+    if (!uploadedImages.length) {
+      setPreviewIndex(0);
+      return;
+    }
+    setPreviewIndex((current) => Math.min(current, uploadedImages.length - 1));
+  }, [uploadedImages]);
+
   const productPreview = {
     name: productName || "Product Name",
     description: productDescription || "Product description preview appears here.",
@@ -105,38 +121,70 @@ function UploadProductPage({
             className="block w-full text-[13px] text-[#333333] file:mr-3 file:rounded-full file:border-0 file:bg-[#C9A14A] file:px-4 file:py-2 file:text-[11px] file:font-semibold file:uppercase file:tracking-[0.1em] file:text-[#0A0A0A]"
           />
           {!!uploadedImages.length && (
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {uploadedImages.map((image) => (
-                <div key={image.id} className="rounded-xl border border-[#C9A14A]/20 p-2">
-                  <img src={image.previewUrl} alt={image.fileName} className="w-full h-24 object-contain bg-[#f8f8f8] rounded-lg" />
-                  <p className="text-[10px] text-[#555555] mt-1 truncate">{image.fileName}</p>
-                </div>
-              ))}
+            <div className="mt-4 space-y-3">
+              <div className="relative rounded-xl border border-[#C9A14A]/20 p-2">
+                <img src={uploadedImages[previewIndex]?.previewUrl} alt="Selected preview" className="w-full h-44 object-contain bg-[#f8f8f8] rounded-lg" />
+                {uploadedImages.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewIndex((current) => (current - 1 + uploadedImages.length) % uploadedImages.length)}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 border border-[#C9A14A]/30 h-8 w-8 text-[#333333]"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewIndex((current) => (current + 1) % uploadedImages.length)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 border border-[#C9A14A]/30 h-8 w-8 text-[#333333]"
+                    >
+                      ›
+                    </button>
+                  </>
+                )}
+              </div>
+              <p className="text-[10px] text-[#555555] truncate">{uploadedImages[previewIndex]?.fileName}</p>
+              <div className="flex flex-wrap gap-2">
+                {uploadedImages.map((image, index) => (
+                  <button
+                    key={image.id}
+                    type="button"
+                    onClick={() => setPreviewIndex(index)}
+                    className={`h-12 w-12 rounded-md overflow-hidden border ${index === previewIndex ? "border-[#C9A14A]" : "border-[#C9A14A]/30"}`}
+                  >
+                    <img src={image.previewUrl} alt={image.fileName} className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
 
         <div className="rounded-2xl border border-[#C9A14A]/20 p-4 sm:p-5">
-          <p className="text-[12px] tracking-[0.14em] uppercase text-[#C9A14A] mb-3 font-semibold">Map Uploaded Image to Color</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {colorOptions.map((color) => (
-              <div key={color}>
-                <label className="block text-[11px] text-[#333333] mb-1">{color}</label>
-                <select
-                  value={colorImageMap[color] || ""}
-                  onChange={(event) => onColorMapChange(color, event.target.value)}
-                  className="w-full border border-[#C9A14A]/30 rounded-xl px-3 py-2.5 text-[13px] outline-none focus:border-[#C9A14A]"
-                >
-                  <option value="">Select uploaded image</option>
-                  {uploadedImages.map((img) => (
-                    <option key={`${color}-${img.id}`} value={img.id}>
-                      {img.fileName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
+          <p className="text-[12px] tracking-[0.14em] uppercase text-[#C9A14A] mb-3 font-semibold">Assign Color for Each Uploaded Image</p>
+          {!uploadedImages.length ? (
+            <p className="text-[12px] text-[#666666]">Upload images first, then choose a color for each image.</p>
+          ) : (
+            <div className="space-y-2">
+              {uploadedImages.map((image) => (
+                <div key={`assign-${image.id}`} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-xl border border-[#C9A14A]/20 p-2.5">
+                  <p className="text-[12px] text-[#333333] truncate">{image.fileName}</p>
+                  <select
+                    value={image.color || ""}
+                    onChange={(event) => onImageColorChange(image.id, event.target.value)}
+                    className="min-w-[150px] border border-[#C9A14A]/30 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#C9A14A]"
+                  >
+                    <option value="">Select color</option>
+                    {colorOptions.map((color) => (
+                      <option key={`${image.id}-${color}`} value={color}>
+                        {color}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-[#C9A14A]/20 p-4 sm:p-5">
@@ -192,8 +240,28 @@ function UploadProductPage({
           <p className="text-[12px] tracking-[0.14em] uppercase text-[#C9A14A] mb-3 font-semibold">Preview</p>
           <div className="rounded-2xl border border-[#C9A14A]/20 overflow-hidden">
             <div className="h-64 bg-[#f8f8f8] p-3">
-              {uploadedImages[0] ? (
-                <img src={uploadedImages[0].previewUrl} alt="Preview" className="h-full w-full object-contain" />
+              {uploadedImages[previewIndex] ? (
+                <div className="h-full relative">
+                  <img src={uploadedImages[previewIndex].previewUrl} alt="Preview" className="h-full w-full object-contain" />
+                  {uploadedImages.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewIndex((current) => (current - 1 + uploadedImages.length) % uploadedImages.length)}
+                        className="absolute left-1 top-1/2 -translate-y-1/2 rounded-full bg-white/90 border border-[#C9A14A]/30 h-8 w-8 text-[#333333]"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewIndex((current) => (current + 1) % uploadedImages.length)}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full bg-white/90 border border-[#C9A14A]/30 h-8 w-8 text-[#333333]"
+                      >
+                        ›
+                      </button>
+                    </>
+                  )}
+                </div>
               ) : (
                 <div className="h-full w-full grid place-items-center text-[12px] text-[#777777]">Upload images to preview</div>
               )}
@@ -216,7 +284,26 @@ function UploadProductPage({
   );
 }
 
-function ProductsPage({ isLoadingProducts, savedProducts }) {
+function ProductsPage({
+  editDraft,
+  editingProductId,
+  deletingProductId,
+  isLoadingProducts,
+  isUpdatingProduct,
+  savedProducts,
+  onEditCancel,
+  onEditChange,
+  onDeleteProduct,
+  onEditSave,
+  onEditStart,
+  onViewProduct,
+}) {
+  const resolveImageSrc = (image) => {
+    if (!image) return "";
+    if (/^(https?:|data:|blob:|\/)/i.test(image)) return image;
+    return `/uploads/${encodeURIComponent(image)}`;
+  };
+
   return (
     <div className="rounded-2xl border border-[#C9A14A]/20 p-4 sm:p-5">
       <p className="text-[12px] tracking-[0.14em] uppercase text-[#C9A14A] mb-3 font-semibold">Saved Products</p>
@@ -225,14 +312,104 @@ function ProductsPage({ isLoadingProducts, savedProducts }) {
       ) : !savedProducts.length ? (
         <p className="text-[12px] text-[#777777]">No products saved yet.</p>
       ) : (
-        <div className="space-y-3 max-h-[560px] overflow-auto pr-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 max-h-[620px] overflow-auto pr-1">
           {savedProducts.map((product) => (
             <div key={product.id} className="rounded-xl border border-[#C9A14A]/20 p-3">
-              <p className="text-[13px] font-semibold text-[#0A0A0A]">{product.name}</p>
-              <p className="text-[11px] text-[#666666] mt-1">{product.description}</p>
-              <p className="text-[11px] text-[#C9A14A] mt-1">
-                AED {product.offerPrice} / <span className="line-through text-[#999999]">{product.actualPrice}</span>
-              </p>
+              <div className="flex gap-3">
+                <img
+                  src={resolveImageSrc(product.images?.[0])}
+                  alt={product.name}
+                  className="w-20 h-20 rounded-lg object-cover bg-[#f2f2f2] shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  {editingProductId === product.id ? (
+                    <div className="space-y-1.5">
+                      <input
+                        type="text"
+                        value={editDraft.name}
+                        onChange={(event) => onEditChange("name", event.target.value)}
+                        className="w-full border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px]"
+                      />
+                      <textarea
+                        rows={2}
+                        value={editDraft.description}
+                        onChange={(event) => onEditChange("description", event.target.value)}
+                        className="w-full border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px] resize-none"
+                      />
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <input
+                          type="number"
+                          min="0"
+                          value={editDraft.actualPrice}
+                          onChange={(event) => onEditChange("actualPrice", event.target.value)}
+                          className="border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px]"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          value={editDraft.offerPrice}
+                          onChange={(event) => onEditChange("offerPrice", event.target.value)}
+                          className="border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px]"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-[12px] font-semibold text-[#0A0A0A] truncate">{product.name}</p>
+                      <p className="text-[10px] text-[#666666] mt-0.5 line-clamp-2">{product.description}</p>
+                      <p className="text-[10px] text-[#C9A14A] mt-1">
+                        AED {product.offerPrice} / <span className="line-through text-[#999999]">{product.actualPrice}</span>
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="mt-2 flex gap-2">
+                {editingProductId === product.id ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={onEditSave}
+                      disabled={isUpdatingProduct}
+                      className="rounded-full bg-[#0A0A0A] text-white px-3 py-1 text-[10px] uppercase tracking-[0.1em] disabled:opacity-60"
+                    >
+                      {isUpdatingProduct ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onEditCancel}
+                      className="rounded-full border border-[#C9A14A]/40 text-[#333333] px-3 py-1 text-[10px] uppercase tracking-[0.1em]"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => onViewProduct(product)}
+                      className="rounded-full bg-[#0A0A0A] text-white px-3 py-1 text-[10px] uppercase tracking-[0.1em]"
+                    >
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteProduct(product)}
+                      disabled={deletingProductId === product.id}
+                      className="rounded-full border border-red-500/40 text-red-600 px-3 py-1 text-[10px] uppercase tracking-[0.1em] disabled:opacity-60"
+                    >
+                      {deletingProductId === product.id ? "Deleting..." : "Delete"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onEditStart(product)}
+                      className="rounded-full border border-[#C9A14A]/40 text-[#333333] px-3 py-1 text-[10px] uppercase tracking-[0.1em]"
+                    >
+                      Edit
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -243,6 +420,11 @@ function ProductsPage({ isLoadingProducts, savedProducts }) {
 
 export default function AdminPage({ onUnauthorized, onProductSaved, onOrdersClick }) {
   const navigate = useNavigate();
+  const resolveImageSrc = (image) => {
+    if (!image) return "";
+    if (/^(https?:|data:|blob:|\/)/i.test(image)) return image;
+    return `/uploads/${encodeURIComponent(image)}`;
+  };
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -256,13 +438,18 @@ export default function AdminPage({ onUnauthorized, onProductSaved, onOrdersClic
   const [offerPrice, setOfferPrice] = useState("");
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [uploadedImages, setUploadedImages] = useState([]);
-  const [colorImageMap, setColorImageMap] = useState({});
-
-  useEffect(() => {
-    return () => {
-      uploadedImages.forEach((fileMeta) => window.URL.revokeObjectURL(fileMeta.previewUrl));
-    };
-  }, [uploadedImages]);
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState(null);
+  const [editDraft, setEditDraft] = useState({
+    name: "",
+    description: "",
+    actualPrice: "",
+    offerPrice: "",
+  });
+  const [viewProduct, setViewProduct] = useState(null);
+  const [viewImageIndex, setViewImageIndex] = useState(0);
+  const [viewTransitionDirection, setViewTransitionDirection] = useState("left");
 
   useEffect(() => {
     let mounted = true;
@@ -308,14 +495,26 @@ export default function AdminPage({ onUnauthorized, onProductSaved, onOrdersClic
   const handleImageUpload = (event) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
+    setSaveError("");
 
-    const nextFiles = files.map((file, index) => ({
-      id: `${Date.now()}-${index}`,
-      fileName: file.name,
-      previewUrl: window.URL.createObjectURL(file),
-    }));
+    const uploadFiles = async () => {
+      try {
+        const response = await uploadAdminImages(files);
+        const nextFiles = (response.files || []).map((file, index) => ({
+          id: `${Date.now()}-${index}`,
+          fileName: file.fileName,
+          previewUrl: file.url,
+          imageRef: file.url,
+          color: "",
+        }));
+        setUploadedImages((current) => [...current, ...nextFiles]);
+      } catch (error) {
+        setSaveError(error.message || "Unable to upload images.");
+      }
+    };
 
-    setUploadedImages((current) => [...current, ...nextFiles]);
+    uploadFiles();
+    event.target.value = "";
   };
 
   const toggleSize = (size) => {
@@ -324,15 +523,19 @@ export default function AdminPage({ onUnauthorized, onProductSaved, onOrdersClic
     );
   };
 
+  const handleImageColorChange = (imageId, color) => {
+    setUploadedImages((current) =>
+      current.map((image) => (image.id === imageId ? { ...image, color } : image))
+    );
+  };
+
   const resetProductForm = () => {
-    uploadedImages.forEach((fileMeta) => window.URL.revokeObjectURL(fileMeta.previewUrl));
     setProductName("");
     setProductDescription("");
     setActualPrice("");
     setOfferPrice("");
     setSelectedSizes([]);
     setUploadedImages([]);
-    setColorImageMap({});
   };
 
   const handleSaveProduct = async () => {
@@ -340,12 +543,14 @@ export default function AdminPage({ onUnauthorized, onProductSaved, onOrdersClic
     setSaveError("");
     setSaveSuccess("");
 
-    const imageById = Object.fromEntries(uploadedImages.map((img) => [img.id, img.fileName]));
-    const resolvedColorImageMap = Object.fromEntries(
-      Object.entries(colorImageMap)
-        .filter(([, imageId]) => imageById[imageId])
-        .map(([color, imageId]) => [color, imageById[imageId]])
-    );
+    const resolvedColorImageMap = uploadedImages.reduce((accumulator, image) => {
+      if (!image.color) return accumulator;
+      if (!accumulator[image.color]) {
+        accumulator[image.color] = [];
+      }
+      accumulator[image.color].push(image.imageRef || image.previewUrl);
+      return accumulator;
+    }, {});
 
     setIsSaving(true);
     try {
@@ -355,7 +560,7 @@ export default function AdminPage({ onUnauthorized, onProductSaved, onOrdersClic
         actualPrice: Number(actualPrice),
         offerPrice: Number(offerPrice),
         sizes: selectedSizes,
-        images: uploadedImages.map((img) => img.fileName),
+        images: uploadedImages.map((img) => img.imageRef || img.previewUrl),
         colorImageMap: resolvedColorImageMap,
       });
       setSaveSuccess("Product saved to database successfully.");
@@ -368,6 +573,84 @@ export default function AdminPage({ onUnauthorized, onProductSaved, onOrdersClic
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleStartEditProduct = (product) => {
+    setEditingProductId(product.id);
+    setEditDraft({
+      name: product.name || "",
+      description: product.description || "",
+      actualPrice: String(product.actualPrice ?? ""),
+      offerPrice: String(product.offerPrice ?? ""),
+    });
+  };
+
+  const handleSaveEditProduct = async () => {
+    if (!editingProductId || isUpdatingProduct) return;
+    setIsUpdatingProduct(true);
+    setSaveError("");
+    try {
+      const existing = savedProducts.find((product) => product.id === editingProductId);
+      if (!existing) throw new Error("Product not found.");
+
+      await updateAdminProduct(editingProductId, {
+        name: editDraft.name.trim(),
+        description: editDraft.description.trim(),
+        actualPrice: Number(editDraft.actualPrice),
+        offerPrice: Number(editDraft.offerPrice),
+        sizes: existing.sizes || [],
+        images: existing.images || [],
+        colorImageMap: existing.colorImageMap || {},
+      });
+
+      const refreshed = await fetchAdminProducts();
+      setSavedProducts(refreshed.products || []);
+      setEditingProductId(null);
+    } catch (error) {
+      setSaveError(error.message || "Unable to update product.");
+    } finally {
+      setIsUpdatingProduct(false);
+    }
+  };
+
+  const handleDeleteProduct = async (product) => {
+    if (!product?.id || deletingProductId) return;
+    const confirmed = window.confirm(`Delete "${product.name}" permanently?`);
+    if (!confirmed) return;
+
+    setSaveError("");
+    setSaveSuccess("");
+    setDeletingProductId(product.id);
+    try {
+      await deleteAdminProduct(product.id);
+      setSavedProducts((current) => current.filter((item) => item.id !== product.id));
+      setSaveSuccess("Product deleted successfully.");
+      if (viewProduct?.id === product.id) {
+        setViewProduct(null);
+      }
+    } catch (error) {
+      setSaveError(error.message || "Unable to delete product.");
+    } finally {
+      setDeletingProductId(null);
+    }
+  };
+
+  const handleViewProduct = (product) => {
+    setViewProduct(product);
+    setViewImageIndex(0);
+    setViewTransitionDirection("left");
+  };
+
+  const handleViewImageChange = (direction) => {
+    const images = Array.isArray(viewProduct?.images) ? viewProduct.images : [];
+    if (images.length <= 1) return;
+    setViewTransitionDirection(direction);
+    setViewImageIndex((current) => {
+      if (direction === "right") {
+        return (current - 1 + images.length) % images.length;
+      }
+      return (current + 1) % images.length;
+    });
   };
 
   if (isCheckingAccess) {
@@ -418,7 +701,30 @@ export default function AdminPage({ onUnauthorized, onProductSaved, onOrdersClic
 
       <Routes>
         <Route path="/" element={<Navigate to="/admin/products" replace />} />
-        <Route path="products" element={<ProductsPage isLoadingProducts={isLoadingProducts} savedProducts={savedProducts} />} />
+        <Route
+          path="products"
+          element={
+            <ProductsPage
+              isLoadingProducts={isLoadingProducts}
+              savedProducts={savedProducts}
+              editingProductId={editingProductId}
+              deletingProductId={deletingProductId}
+              editDraft={editDraft}
+              isUpdatingProduct={isUpdatingProduct}
+              onEditStart={handleStartEditProduct}
+              onEditCancel={() => setEditingProductId(null)}
+              onViewProduct={handleViewProduct}
+              onDeleteProduct={handleDeleteProduct}
+              onEditChange={(field, value) =>
+                setEditDraft((current) => ({
+                  ...current,
+                  [field]: value,
+                }))
+              }
+              onEditSave={handleSaveEditProduct}
+            />
+          }
+        />
         <Route
           path="upload"
           element={
@@ -429,7 +735,6 @@ export default function AdminPage({ onUnauthorized, onProductSaved, onOrdersClic
               offerPrice={offerPrice}
               selectedSizes={selectedSizes}
               uploadedImages={uploadedImages}
-              colorImageMap={colorImageMap}
               saveError={saveError}
               saveSuccess={saveSuccess}
               isSaving={isSaving}
@@ -438,19 +743,108 @@ export default function AdminPage({ onUnauthorized, onProductSaved, onOrdersClic
               onActualPriceChange={setActualPrice}
               onOfferPriceChange={setOfferPrice}
               onImageUpload={handleImageUpload}
+              onImageColorChange={handleImageColorChange}
               onToggleSize={toggleSize}
               onSave={handleSaveProduct}
-              onColorMapChange={(color, imageId) =>
-                setColorImageMap((current) => ({
-                  ...current,
-                  [color]: imageId,
-                }))
-              }
             />
           }
         />
         <Route path="*" element={<Navigate to="/admin/products" replace />} />
       </Routes>
+
+      {viewProduct && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <style>
+            {`
+              @keyframes slide-in-right {
+                from { transform: translateX(100%); opacity: 0.55; }
+                to { transform: translateX(0); opacity: 1; }
+              }
+              @keyframes slide-in-left {
+                from { transform: translateX(-100%); opacity: 0.55; }
+                to { transform: translateX(0); opacity: 1; }
+              }
+            `}
+          </style>
+          <div className="w-full max-w-2xl rounded-2xl bg-white border border-[#C9A14A]/30 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#C9A14A]/20">
+              <h3 className="text-xl text-[#0A0A0A]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                {viewProduct.name}
+              </h3>
+              <button onClick={() => setViewProduct(null)} className="text-lg text-[#333333]" aria-label="Close">
+                ×
+              </button>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4">
+              <div className="space-y-2">
+                <div className="relative w-full h-56 overflow-hidden rounded-xl bg-[#f3f3f3]">
+                  <img
+                    key={`${viewProduct.id}-${viewImageIndex}`}
+                    src={resolveImageSrc(viewProduct.images?.[viewImageIndex])}
+                    alt={viewProduct.name}
+                    className="w-full h-56 object-cover"
+                    style={{
+                      animation: viewTransitionDirection === "right"
+                        ? "slide-in-left 260ms ease"
+                        : "slide-in-right 260ms ease",
+                    }}
+                  />
+                  {(viewProduct.images || []).length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleViewImageChange("right")}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/85 border border-[#C9A14A]/30 h-8 w-8 text-[#333333]"
+                        aria-label="Previous image"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleViewImageChange("left")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/85 border border-[#C9A14A]/30 h-8 w-8 text-[#333333]"
+                        aria-label="Next image"
+                      >
+                        ›
+                      </button>
+                    </>
+                  )}
+                </div>
+                {(viewProduct.images || []).length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto">
+                    {(viewProduct.images || []).map((image, index) => (
+                      <button
+                        key={`${viewProduct.id}-thumb-${index}`}
+                        type="button"
+                        onClick={() => {
+                          setViewTransitionDirection(index < viewImageIndex ? "right" : "left");
+                          setViewImageIndex(index);
+                        }}
+                        className={`h-12 w-12 rounded-md overflow-hidden border shrink-0 ${
+                          viewImageIndex === index ? "border-[#C9A14A]" : "border-[#C9A14A]/30"
+                        }`}
+                        aria-label={`View image ${index + 1}`}
+                      >
+                        <img src={resolveImageSrc(image)} alt={`${viewProduct.name} thumbnail ${index + 1}`} className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <p className="text-[13px] text-[#555555]">{viewProduct.description}</p>
+                <p className="text-[12px] text-[#333333]">Sizes: {(viewProduct.sizes || []).join(", ") || "N/A"}</p>
+                <p className="text-[12px] text-[#333333]">
+                  Colors: {Object.keys(viewProduct.colorImageMap || {}).join(", ") || "N/A"}
+                </p>
+                <p className="text-[12px] text-[#C9A14A]">
+                  AED {viewProduct.offerPrice} / <span className="line-through text-[#999999]">{viewProduct.actualPrice}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
