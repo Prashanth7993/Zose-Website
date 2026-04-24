@@ -418,7 +418,7 @@ function ProductsPage({
   );
 }
 
-export default function AdminPage({ onUnauthorized, onProductSaved, onOrdersClick }) {
+export default function AdminPage({ onUnauthorized, onProductSaved }) {
   const navigate = useNavigate();
   const resolveImageSrc = (image) => {
     if (!image) return "";
