@@ -283,7 +283,6 @@ function UploadProductPage({
     </div>
   );
 }
-
 function ProductsPage({
   editDraft,
   editingProductId,
@@ -306,109 +305,52 @@ function ProductsPage({
 
   return (
     <div className="rounded-2xl border border-[#C9A14A]/20 p-4 sm:p-5">
-      <p className="text-[12px] tracking-[0.14em] uppercase text-[#C9A14A] mb-3 font-semibold">Saved Products</p>
+      <p className="text-[12px] tracking-[0.14em] uppercase text-[#C9A14A] mb-4 font-semibold">Saved Products</p>
       {isLoadingProducts ? (
         <p className="text-[12px] text-[#777777]">Loading saved products...</p>
       ) : !savedProducts.length ? (
         <p className="text-[12px] text-[#777777]">No products saved yet.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 max-h-[620px] overflow-auto pr-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
           {savedProducts.map((product) => (
-            <div key={product.id} className="rounded-xl border border-[#C9A14A]/20 p-3">
-              <div className="flex gap-3">
-                <img
-                  src={resolveImageSrc(product.images?.[0])}
-                  alt={product.name}
-                  className="w-20 h-20 rounded-lg object-cover bg-[#f2f2f2] shrink-0"
-                />
-                <div className="min-w-0 flex-1">
-                  {editingProductId === product.id ? (
-                    <div className="space-y-1.5">
-                      <input
-                        type="text"
-                        value={editDraft.name}
-                        onChange={(event) => onEditChange("name", event.target.value)}
-                        className="w-full border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px]"
-                      />
-                      <textarea
-                        rows={2}
-                        value={editDraft.description}
-                        onChange={(event) => onEditChange("description", event.target.value)}
-                        className="w-full border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px] resize-none"
-                      />
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <input
-                          type="number"
-                          min="0"
-                          value={editDraft.actualPrice}
-                          onChange={(event) => onEditChange("actualPrice", event.target.value)}
-                          className="border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px]"
-                        />
-                        <input
-                          type="number"
-                          min="0"
-                          value={editDraft.offerPrice}
-                          onChange={(event) => onEditChange("offerPrice", event.target.value)}
-                          className="border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px]"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="text-[12px] font-semibold text-[#0A0A0A] truncate">{product.name}</p>
-                      <p className="text-[10px] text-[#666666] mt-0.5 line-clamp-2">{product.description}</p>
-                      <p className="text-[10px] text-[#C9A14A] mt-1">
-                        AED {product.offerPrice} / <span className="line-through text-[#999999]">{product.actualPrice}</span>
-                      </p>
-                    </>
-                  )}
+            <div key={product.id} className="rounded-xl border border-[#C9A14A]/20 overflow-hidden">
+              <img
+                src={resolveImageSrc(product.images?.[0])}
+                alt={product.name}
+                className="w-full h-52 object-cover bg-[#f2f2f2]"
+              />
+              <div className="p-4 space-y-3">
+                <div>
+                  <h3 className="text-xl text-[#0A0A0A] font-semibold">{product.name}</h3>
+                  <p className="text-[13px] text-[#666666] mt-1 line-clamp-2">{product.description}</p>
                 </div>
-              </div>
-              <div className="mt-2 flex gap-2">
-                {editingProductId === product.id ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={onEditSave}
-                      disabled={isUpdatingProduct}
-                      className="rounded-full bg-[#0A0A0A] text-white px-3 py-1 text-[10px] uppercase tracking-[0.1em] disabled:opacity-60"
-                    >
-                      {isUpdatingProduct ? "Saving..." : "Save"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onEditCancel}
-                      className="rounded-full border border-[#C9A14A]/40 text-[#333333] px-3 py-1 text-[10px] uppercase tracking-[0.1em]"
-                    >
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => onViewProduct(product)}
-                      className="rounded-full bg-[#0A0A0A] text-white px-3 py-1 text-[10px] uppercase tracking-[0.1em]"
-                    >
-                      View
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onDeleteProduct(product)}
-                      disabled={deletingProductId === product.id}
-                      className="rounded-full border border-red-500/40 text-red-600 px-3 py-1 text-[10px] uppercase tracking-[0.1em] disabled:opacity-60"
-                    >
-                      {deletingProductId === product.id ? "Deleting..." : "Delete"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onEditStart(product)}
-                      className="rounded-full border border-[#C9A14A]/40 text-[#333333] px-3 py-1 text-[10px] uppercase tracking-[0.1em]"
-                    >
-                      Edit
-                    </button>
-                  </>
-                )}
+                <p className="text-[13px] text-[#C9A14A] font-semibold">
+                  AED {product.offerPrice} / <span className="line-through text-[#999999]">{product.actualPrice}</span>
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onViewProduct(product)}
+                    className="flex-1 rounded-full bg-[#0A0A0A] text-white px-3 py-2 text-[11px] uppercase tracking-[0.1em]"
+                  >
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onEditStart(product)}
+                    className="flex-1 rounded-full border border-[#C9A14A]/40 text-[#333333] px-3 py-2 text-[11px] uppercase tracking-[0.1em]"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteProduct(product)}
+                    disabled={deletingProductId === product.id}
+                    className="flex-1 rounded-full border border-red-500/40 text-red-600 px-3 py-2 text-[11px] uppercase tracking-[0.1em] disabled:opacity-60"
+                  >
+                    {deletingProductId === product.id ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -417,6 +359,140 @@ function ProductsPage({
     </div>
   );
 }
+
+// function ProductsPage({
+//   editDraft,
+//   editingProductId,
+//   deletingProductId,
+//   isLoadingProducts,
+//   isUpdatingProduct,
+//   savedProducts,
+//   onEditCancel,
+//   onEditChange,
+//   onDeleteProduct,
+//   onEditSave,
+//   onEditStart,
+//   onViewProduct,
+// }) {
+//   const resolveImageSrc = (image) => {
+//     if (!image) return "";
+//     if (/^(https?:|data:|blob:|\/)/i.test(image)) return image;
+//     return `/uploads/${encodeURIComponent(image)}`;
+//   };
+
+//   return (
+//     <div className="rounded-2xl border border-[#C9A14A]/20 p-4 sm:p-5">
+//       <p className="text-[12px] tracking-[0.14em] uppercase text-[#C9A14A] mb-3 font-semibold">Saved Products</p>
+//       {isLoadingProducts ? (
+//         <p className="text-[12px] text-[#777777]">Loading saved products...</p>
+//       ) : !savedProducts.length ? (
+//         <p className="text-[12px] text-[#777777]">No products saved yet.</p>
+//       ) : (
+//         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 max-h-[620px] overflow-auto pr-1">
+//           {savedProducts.map((product) => (
+//             <div key={product.id} className="rounded-xl border border-[#C9A14A]/20 p-3">
+//               <div className="flex gap-3">
+//                 <img
+//                   src={resolveImageSrc(product.images?.[0])}
+//                   alt={product.name}
+//                   className="w-20 h-20 rounded-lg object-cover bg-[#f2f2f2] shrink-0"
+//                 />
+//                 <div className="min-w-0 flex-1">
+//                   {editingProductId === product.id ? (
+//                     <div className="space-y-1.5">
+//                       <input
+//                         type="text"
+//                         value={editDraft.name}
+//                         onChange={(event) => onEditChange("name", event.target.value)}
+//                         className="w-full border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px]"
+//                       />
+//                       <textarea
+//                         rows={2}
+//                         value={editDraft.description}
+//                         onChange={(event) => onEditChange("description", event.target.value)}
+//                         className="w-full border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px] resize-none"
+//                       />
+//                       <div className="grid grid-cols-2 gap-1.5">
+//                         <input
+//                           type="number"
+//                           min="0"
+//                           value={editDraft.actualPrice}
+//                           onChange={(event) => onEditChange("actualPrice", event.target.value)}
+//                           className="border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px]"
+//                         />
+//                         <input
+//                           type="number"
+//                           min="0"
+//                           value={editDraft.offerPrice}
+//                           onChange={(event) => onEditChange("offerPrice", event.target.value)}
+//                           className="border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px]"
+//                         />
+//                       </div>
+//                     </div>
+//                   ) : (
+//                     <>
+//                       <p className="text-[12px] font-semibold text-[#0A0A0A] truncate">{product.name}</p>
+//                       <p className="text-[10px] text-[#666666] mt-0.5 line-clamp-2">{product.description}</p>
+//                       <p className="text-[10px] text-[#C9A14A] mt-1">
+//                         AED {product.offerPrice} / <span className="line-through text-[#999999]">{product.actualPrice}</span>
+//                       </p>
+//                     </>
+//                   )}
+//                 </div>
+//               </div>
+//               <div className="mt-2 flex gap-2">
+//                 {editingProductId === product.id ? (
+//                   <>
+//                     <button
+//                       type="button"
+//                       onClick={onEditSave}
+//                       disabled={isUpdatingProduct}
+//                       className="rounded-full bg-[#0A0A0A] text-white px-3 py-1 text-[10px] uppercase tracking-[0.1em] disabled:opacity-60"
+//                     >
+//                       {isUpdatingProduct ? "Saving..." : "Save"}
+//                     </button>
+//                     <button
+//                       type="button"
+//                       onClick={onEditCancel}
+//                       className="rounded-full border border-[#C9A14A]/40 text-[#333333] px-3 py-1 text-[10px] uppercase tracking-[0.1em]"
+//                     >
+//                       Cancel
+//                     </button>
+//                   </>
+//                 ) : (
+//                   <>
+//                     <button
+//                       type="button"
+//                       onClick={() => onViewProduct(product)}
+//                       className="rounded-full bg-[#0A0A0A] text-white px-3 py-1 text-[10px] uppercase tracking-[0.1em]"
+//                     >
+//                       View
+//                     </button>
+//                     <button
+//                       type="button"
+//                       onClick={() => onDeleteProduct(product)}
+//                       disabled={deletingProductId === product.id}
+//                       className="rounded-full border border-red-500/40 text-red-600 px-3 py-1 text-[10px] uppercase tracking-[0.1em] disabled:opacity-60"
+//                     >
+//                       {deletingProductId === product.id ? "Deleting..." : "Delete"}
+//                     </button>
+//                     <button
+//                       type="button"
+//                       onClick={() => onEditStart(product)}
+//                       className="rounded-full border border-[#C9A14A]/40 text-[#333333] px-3 py-1 text-[10px] uppercase tracking-[0.1em]"
+//                     >
+//                       Edit
+//                     </button>
+//                   </>
+//                 )}
+//               </div>
+//             </div>
+//           ))}
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
 
 export default function AdminPage({ onUnauthorized, onProductSaved }) {
   const navigate = useNavigate();
