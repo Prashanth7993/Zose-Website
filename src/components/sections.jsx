@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import geminiTshirtImage from "../assets/Gemini_Generated_Image_xuqw8oxuqw8oxuqw.png";
 import zoseLogo from "../assets/zose.jpeg";
+import { resolveApiAssetUrl } from "../lib/auth";
 
 // MarqueeBanner.jsx
 export function MarqueeBanner() {
@@ -107,8 +108,7 @@ export function CollectionsSection({
   const getDisplayImage = (product, color) => getImagesForColor(product, color)[0] || geminiTshirtImage;
   const resolveProductImageSrc = (image) => {
     if (!image) return geminiTshirtImage;
-    if (/^(https?:|data:|blob:|\/)/i.test(image)) return image;
-    return `/uploads/${encodeURIComponent(image)}`;
+    return resolveApiAssetUrl(image) || geminiTshirtImage;
   };
   const normalizedProducts = products.map((product, index) => ({
     id: product.id ?? index + 1,

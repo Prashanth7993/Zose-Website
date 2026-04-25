@@ -4,6 +4,7 @@ import {
   createAdminProduct,
   deleteAdminProduct,
   fetchAdminProducts,
+  resolveApiAssetUrl,
   updateAdminProduct,
   uploadAdminImages,
   validateAdminSession,
@@ -304,17 +305,7 @@ function ProductsPage({
   //   return `https://zose-backend.onrender.com/uploads/${encodeURIComponent(image)}`;
   // };
   const resolveImageSrc = (image) => {
-    if (!image) return "";
-    if (/^(https?:|data:|blob:|\/)/i.test(image)) {
-      // If it's a full URL or starts with /, use it directly
-      if (image.startsWith("http")) {
-        return image;
-      }
-      // If it's a relative path like /uploads/..., add the backend URL
-      return `https://zose-backend.onrender.com${image}`;
-    }
-    // If it's just a filename, add the full path
-    return `https://zose-backend.onrender.com/uploads/${encodeURIComponent(image)}`;
+    return resolveApiAssetUrl(image);
   };
 
   return (
@@ -435,10 +426,7 @@ function ProductsPage({
 export default function AdminPage({ onUnauthorized, onProductSaved }) {
   const navigate = useNavigate();
   const resolveImageSrc = (image) => {
-    if (!image) return "";
-    if (image.startsWith("http")) return image;
-    if (image.startsWith("/")) return `https://zose-backend.onrender.com${image}`;
-    return `https://zose-backend.onrender.com/uploads/${encodeURIComponent(image)}`;
+    return resolveApiAssetUrl(image);
   };
   // const resolveImageSrc = (image) => {
   //   if (!image) return "";

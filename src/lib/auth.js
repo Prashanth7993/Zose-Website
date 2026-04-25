@@ -1,6 +1,13 @@
 const USER_STORAGE_KEY = "zose-auth-user";
 const TOKEN_STORAGE_KEY = "zose-auth-token";
-const API_BASE_URL = "https://zose-backend.onrender.com";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://zose-backend.onrender.com";
+
+export const resolveApiAssetUrl = (assetPath) => {
+  if (!assetPath) return "";
+  if (/^(https?:|data:|blob:)/i.test(assetPath)) return assetPath;
+  if (assetPath.startsWith("/")) return `${API_BASE_URL}${assetPath}`;
+  return `${API_BASE_URL}/uploads/${encodeURIComponent(assetPath)}`;
+};
 
 
 const parseResponse = async (response) => {

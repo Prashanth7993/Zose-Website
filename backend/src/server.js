@@ -3,7 +3,7 @@ import cors from "cors";
 import express from "express";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { mkdirSync } from "node:fs";
-import { dirname, extname, join, resolve } from "node:path";
+import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import jwt from "jsonwebtoken";
 import multer from "multer";
@@ -118,16 +118,18 @@ const parseJsonField = (value, fallback) => {
   }
 };
 
-const sanitizePublicProduct = (product) => ({
-  id: product.id,
-  name: product.name,
-  description: product.description,
-  actualPrice: Number(product.actual_price),
-  offerPrice: Number(product.offer_price),
-  sizes: parseJsonField(product.sizes_json, []),
-  images: parseJsonField(product.images_json, []),
-  colorImageMap: parseJsonField(product.color_image_map_json, {}),
-});
+const sanitizePublicProduct = (product) => {
+  return {
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    actualPrice: Number(product.actual_price),
+    offerPrice: Number(product.offer_price),
+    sizes: parseJsonField(product.sizes_json, []),
+    images: parseJsonField(product.images_json, []),
+    colorImageMap: parseJsonField(product.color_image_map_json, {}),
+  };
+};
 
 const sanitizeAdminProduct = (product) => ({
   ...sanitizePublicProduct(product),
@@ -139,8 +141,11 @@ const sanitizeAdminProduct = (product) => ({
 const db = await migrateDatabase();
 const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
 const BACKEND_DIR = resolve(CURRENT_DIR, "..");
-const UPLOADS_DIR = resolve(BACKEND_DIR, "uploads");
+const UPLOADS_DIR = process.env.UPLOADS_DIR
+  ? resolve(process.env.UPLOADS_DIR)
+  : resolve(BACKEND_DIR, "uploads");
 mkdirSync(UPLOADS_DIR, { recursive: true });
+console.log(`Uploads directory: ${UPLOADS_DIR}`);
 
 const uploadsStorage = multer.diskStorage({
   destination: (_req, _file, callback) => callback(null, UPLOADS_DIR),
