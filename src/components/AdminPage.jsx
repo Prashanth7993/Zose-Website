@@ -322,7 +322,7 @@ function ProductsPage({
               <img
                     src={resolveImageSrc(product.images?.[0])}
                     alt={product.name}
-                    className="w-full h-52 object-cover bg-[#f2f2f2]"
+                    className="w-full h-52 object-contain bg-[#f2f2f2]"
               />
               {editingProductId === product.id ? (
                 <div className="p-4 space-y-3">
@@ -790,7 +790,7 @@ export default function AdminPage({ onUnauthorized, onProductSaved }) {
                     key={`${viewProduct.id}-${viewImageIndex}`}
                     src={resolveImageSrc(viewProduct.images?.[viewImageIndex])}
                     alt={viewProduct.name}
-                    className="w-full h-56 object-cover"
+                    className="w-full h-56 object-contain"
                     style={{
                       animation: viewTransitionDirection === "right"
                         ? "slide-in-left 260ms ease"
@@ -833,7 +833,7 @@ export default function AdminPage({ onUnauthorized, onProductSaved }) {
                         }`}
                         aria-label={`View image ${index + 1}`}
                       >
-                        <img src={resolveImageSrc(image)} alt={`${viewProduct.name} thumbnail ${index + 1}`} className="h-full w-full object-cover" />
+                        <img src={resolveImageSrc(image)} alt={`${viewProduct.name} thumbnail ${index + 1}`} className="h-full w-full object-contain bg-[#f3f3f3]" />
                       </button>
                     ))}
                   </div>
