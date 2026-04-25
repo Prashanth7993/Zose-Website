@@ -298,9 +298,22 @@ function ProductsPage({
   onEditStart,
   onViewProduct,
 }) {
+  // const resolveImageSrc = (image) => {
+  //   if (!image) return "";
+  //   if (/^(https?:|data:|blob:|\/)/i.test(image)) return image;
+  //   return `https://zose-backend.onrender.com/uploads/${encodeURIComponent(image)}`;
+  // };
   const resolveImageSrc = (image) => {
     if (!image) return "";
-    if (/^(https?:|data:|blob:|\/)/i.test(image)) return image;
+    if (/^(https?:|data:|blob:|\/)/i.test(image)) {
+      // If it's a full URL or starts with /, use it directly
+      if (image.startsWith("http")) {
+        return image;
+      }
+      // If it's a relative path like /uploads/..., add the backend URL
+      return `https://zose-backend.onrender.com${image}`;
+    }
+    // If it's just a filename, add the full path
     return `https://zose-backend.onrender.com/uploads/${encodeURIComponent(image)}`;
   };
 
@@ -418,147 +431,20 @@ function ProductsPage({
   );
 }
 
-// function ProductsPage({
-//   editDraft,
-//   editingProductId,
-//   deletingProductId,
-//   isLoadingProducts,
-//   isUpdatingProduct,
-//   savedProducts,
-//   onEditCancel,
-//   onEditChange,
-//   onDeleteProduct,
-//   onEditSave,
-//   onEditStart,
-//   onViewProduct,
-// }) {
-//   const resolveImageSrc = (image) => {
-//     if (!image) return "";
-//     if (/^(https?:|data:|blob:|\/)/i.test(image)) return image;
-//     return `/uploads/${encodeURIComponent(image)}`;
-//   };
-
-//   return (
-//     <div className="rounded-2xl border border-[#C9A14A]/20 p-4 sm:p-5">
-//       <p className="text-[12px] tracking-[0.14em] uppercase text-[#C9A14A] mb-3 font-semibold">Saved Products</p>
-//       {isLoadingProducts ? (
-//         <p className="text-[12px] text-[#777777]">Loading saved products...</p>
-//       ) : !savedProducts.length ? (
-//         <p className="text-[12px] text-[#777777]">No products saved yet.</p>
-//       ) : (
-//         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 max-h-[620px] overflow-auto pr-1">
-//           {savedProducts.map((product) => (
-//             <div key={product.id} className="rounded-xl border border-[#C9A14A]/20 p-3">
-//               <div className="flex gap-3">
-//                 <img
-//                   src={resolveImageSrc(product.images?.[0])}
-//                   alt={product.name}
-//                   className="w-20 h-20 rounded-lg object-cover bg-[#f2f2f2] shrink-0"
-//                 />
-//                 <div className="min-w-0 flex-1">
-//                   {editingProductId === product.id ? (
-//                     <div className="space-y-1.5">
-//                       <input
-//                         type="text"
-//                         value={editDraft.name}
-//                         onChange={(event) => onEditChange("name", event.target.value)}
-//                         className="w-full border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px]"
-//                       />
-//                       <textarea
-//                         rows={2}
-//                         value={editDraft.description}
-//                         onChange={(event) => onEditChange("description", event.target.value)}
-//                         className="w-full border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px] resize-none"
-//                       />
-//                       <div className="grid grid-cols-2 gap-1.5">
-//                         <input
-//                           type="number"
-//                           min="0"
-//                           value={editDraft.actualPrice}
-//                           onChange={(event) => onEditChange("actualPrice", event.target.value)}
-//                           className="border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px]"
-//                         />
-//                         <input
-//                           type="number"
-//                           min="0"
-//                           value={editDraft.offerPrice}
-//                           onChange={(event) => onEditChange("offerPrice", event.target.value)}
-//                           className="border border-[#C9A14A]/30 rounded-md px-2 py-1 text-[11px]"
-//                         />
-//                       </div>
-//                     </div>
-//                   ) : (
-//                     <>
-//                       <p className="text-[12px] font-semibold text-[#0A0A0A] truncate">{product.name}</p>
-//                       <p className="text-[10px] text-[#666666] mt-0.5 line-clamp-2">{product.description}</p>
-//                       <p className="text-[10px] text-[#C9A14A] mt-1">
-//                         AED {product.offerPrice} / <span className="line-through text-[#999999]">{product.actualPrice}</span>
-//                       </p>
-//                     </>
-//                   )}
-//                 </div>
-//               </div>
-//               <div className="mt-2 flex gap-2">
-//                 {editingProductId === product.id ? (
-//                   <>
-//                     <button
-//                       type="button"
-//                       onClick={onEditSave}
-//                       disabled={isUpdatingProduct}
-//                       className="rounded-full bg-[#0A0A0A] text-white px-3 py-1 text-[10px] uppercase tracking-[0.1em] disabled:opacity-60"
-//                     >
-//                       {isUpdatingProduct ? "Saving..." : "Save"}
-//                     </button>
-//                     <button
-//                       type="button"
-//                       onClick={onEditCancel}
-//                       className="rounded-full border border-[#C9A14A]/40 text-[#333333] px-3 py-1 text-[10px] uppercase tracking-[0.1em]"
-//                     >
-//                       Cancel
-//                     </button>
-//                   </>
-//                 ) : (
-//                   <>
-//                     <button
-//                       type="button"
-//                       onClick={() => onViewProduct(product)}
-//                       className="rounded-full bg-[#0A0A0A] text-white px-3 py-1 text-[10px] uppercase tracking-[0.1em]"
-//                     >
-//                       View
-//                     </button>
-//                     <button
-//                       type="button"
-//                       onClick={() => onDeleteProduct(product)}
-//                       disabled={deletingProductId === product.id}
-//                       className="rounded-full border border-red-500/40 text-red-600 px-3 py-1 text-[10px] uppercase tracking-[0.1em] disabled:opacity-60"
-//                     >
-//                       {deletingProductId === product.id ? "Deleting..." : "Delete"}
-//                     </button>
-//                     <button
-//                       type="button"
-//                       onClick={() => onEditStart(product)}
-//                       className="rounded-full border border-[#C9A14A]/40 text-[#333333] px-3 py-1 text-[10px] uppercase tracking-[0.1em]"
-//                     >
-//                       Edit
-//                     </button>
-//                   </>
-//                 )}
-//               </div>
-//             </div>
-//           ))}
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
 
 export default function AdminPage({ onUnauthorized, onProductSaved }) {
   const navigate = useNavigate();
   const resolveImageSrc = (image) => {
     if (!image) return "";
-    if (/^(https?:|data:|blob:|\/)/i.test(image)) return image;
-    return `/uploads/${encodeURIComponent(image)}`;
+    if (image.startsWith("http")) return image;
+    if (image.startsWith("/")) return `https://zose-backend.onrender.com${image}`;
+    return `https://zose-backend.onrender.com/uploads/${encodeURIComponent(image)}`;
   };
+  // const resolveImageSrc = (image) => {
+  //   if (!image) return "";
+  //   if (/^(https?:|data:|blob:|\/)/i.test(image)) return image;
+  //   return `/uploads/${encodeURIComponent(image)}`;
+  // };
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
