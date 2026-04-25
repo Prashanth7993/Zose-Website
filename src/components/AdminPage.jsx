@@ -381,7 +381,7 @@ function ProductsPage({
                   
                   <div className="p-4 space-y-3">
                     <div>
-                      <h3 className="text-xl text-[#0A0A0A] font-semibold">{product.name}</h3>
+                      <h3 className="text-xl text-[#0A0A0A] font-normal">{product.name}</h3>
                       <p className="text-[13px] text-[#666666] mt-1 line-clamp-2">{product.description}</p>
                     </div>
                     <p className="text-[13px] text-[#C9A14A] font-semibold">

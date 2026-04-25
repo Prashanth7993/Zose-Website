@@ -276,7 +276,7 @@ export default function CollectionPage({ products = [], isLoading = false }) {
             products={filteredProducts}
             gridClassName="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6"
             imageClassName="h-48 sm:h-52"
-            titleClassName="text-xl sm:text-2xl"
+            titleClassName="text-xl"
             descriptionClassName="text-[12px] sm:text-[13px]"
           />
         </div>

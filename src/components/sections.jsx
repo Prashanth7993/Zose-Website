@@ -209,8 +209,8 @@ export function CollectionsSection({
               <div className="p-4 sm:p-5 lg:p-6">
                 <p className="text-[9px] sm:text-[10px] tracking-[0.16em] uppercase text-[#C9A14A] mb-2">{col.badge}</p>
                 <h3
-                  className={`${titleClassName} font-normal text-[#0A0A0A] mb-2`}
-                  style={{ fontFamily: "'Cormorant Garamond', serif" }}
+                  className={`${titleClassName} text-xl font-normal text-[#0A0A0A] mb-2`}
+                  // style={{ fontFamily: "'Cormorant Garamond', serif" }}
                 >
                   {col.name}
                 </h3>
@@ -253,7 +253,7 @@ export function CollectionsSection({
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white border border-[#C9A14A]/30 shadow-2xl">
             <div className="flex items-center justify-between p-4 sm:p-5 border-b border-[#C9A14A]/20">
-              <h3 className="text-xl sm:text-2xl text-[#0A0A0A]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              <h3 className="text-xl sm:text-2xl font-normal text-[#0A0A0A]" >
                 {selectedProduct.name}
               </h3>
               <button onClick={closeOrderPopup} className="text-[#333333] hover:text-[#0A0A0A] text-lg" aria-label="Close">
