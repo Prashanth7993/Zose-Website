@@ -301,7 +301,7 @@ function ProductsPage({
   const resolveImageSrc = (image) => {
     if (!image) return "";
     if (/^(https?:|data:|blob:|\/)/i.test(image)) return image;
-    return `/uploads/${encodeURIComponent(image)}`;
+    return `https://zose-backend.onrender.com/uploads/${encodeURIComponent(image)}`;
   };
 
   return (
