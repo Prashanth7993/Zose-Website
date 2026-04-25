@@ -141,4 +141,4 @@ export const fetchProducts = async () => {
   return parseResponse(response);
 };
 
-export const fetchAdminProducts = async () => authFetch(`${API_BASE_URL}/api/admin/products`);
+export const fetchAdminProducts = async () => authFetch("/api/admin/products");
