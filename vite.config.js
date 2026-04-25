@@ -8,11 +8,11 @@ export default defineConfig({
     proxy: {
       // Proxy API calls to Node.js backend during development
       "/api": {
-        target: "http://localhost:5000",
+        target: "https://zose-backend.onrender.com",
         changeOrigin: true,
       },
       "/uploads": {
-        target: "http://localhost:5000",
+        target: "https://zose-backend.onrender.com",
         changeOrigin: true,
       },
     },

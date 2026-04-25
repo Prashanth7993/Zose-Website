@@ -1,5 +1,7 @@
 const USER_STORAGE_KEY = "zose-auth-user";
 const TOKEN_STORAGE_KEY = "zose-auth-token";
+const API_BASE_URL = "https://zose-backend.onrender.com";
+
 
 const parseResponse = async (response) => {
   const data = await response.json().catch(() => ({}));
@@ -12,7 +14,7 @@ const parseResponse = async (response) => {
 };
 
 export const registerUser = async (payload) => {
-  const response = await fetch("/api/auth/register", {
+  const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -24,7 +26,7 @@ export const registerUser = async (payload) => {
 };
 
 export const loginUser = async (payload) => {
-  const response = await fetch("/api/auth/login", {
+  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -85,7 +87,7 @@ export const authFetch = async (input, init = {}) => {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(input, {
+  const response = await fetch(`${API_BASE_URL}${input}`, {
     ...init,
     headers,
   });
@@ -125,7 +127,7 @@ export const uploadAdminImages = async (files) => {
   const formData = new window.FormData();
   files.forEach((file) => formData.append("images", file));
 
-  const response = await fetch("/api/admin/uploads", {
+  const response = await fetch(`${API_BASE_URL}/api/admin/uploads`, {
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: formData,
@@ -135,8 +137,8 @@ export const uploadAdminImages = async (files) => {
 };
 
 export const fetchProducts = async () => {
-  const response = await fetch("/api/products");
+  const response = await fetch(`${API_BASE_URL}/api/products`);
   return parseResponse(response);
 };
 
-export const fetchAdminProducts = async () => authFetch("/api/admin/products");
+export const fetchAdminProducts = async () => authFetch(`${API_BASE_URL}/api/admin/products`);
