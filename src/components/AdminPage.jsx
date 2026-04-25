@@ -283,6 +283,7 @@ function UploadProductPage({
     </div>
   );
 }
+
 function ProductsPage({
   editDraft,
   editingProductId,
@@ -315,43 +316,100 @@ function ProductsPage({
           {savedProducts.map((product) => (
             <div key={product.id} className="rounded-xl border border-[#C9A14A]/20 overflow-hidden">
               <img
-                src={resolveImageSrc(product.images?.[0])}
-                alt={product.name}
-                className="w-full h-52 object-cover bg-[#f2f2f2]"
+                    src={resolveImageSrc(product.images?.[0])}
+                    alt={product.name}
+                    className="w-full h-52 object-cover bg-[#f2f2f2]"
               />
-              <div className="p-4 space-y-3">
-                <div>
-                  <h3 className="text-xl text-[#0A0A0A] font-semibold">{product.name}</h3>
-                  <p className="text-[13px] text-[#666666] mt-1 line-clamp-2">{product.description}</p>
+              {editingProductId === product.id ? (
+                <div className="p-4 space-y-3">
+                  <input
+                    type="text"
+                    value={editDraft.name}
+                    onChange={(event) => onEditChange("name", event.target.value)}
+                    placeholder="Product Name"
+                    className="w-full border border-[#C9A14A]/30 rounded-md px-3 py-2 text-[13px]"
+                  />
+                  <textarea
+                    rows={3}
+                    value={editDraft.description}
+                    onChange={(event) => onEditChange("description", event.target.value)}
+                    placeholder="Product Description"
+                    className="w-full border border-[#C9A14A]/30 rounded-md px-3 py-2 text-[13px] resize-none"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={editDraft.actualPrice}
+                      onChange={(event) => onEditChange("actualPrice", event.target.value)}
+                      placeholder="Actual Price"
+                      className="border border-[#C9A14A]/30 rounded-md px-3 py-2 text-[13px]"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      value={editDraft.offerPrice}
+                      onChange={(event) => onEditChange("offerPrice", event.target.value)}
+                      placeholder="Offer Price"
+                      className="border border-[#C9A14A]/30 rounded-md px-3 py-2 text-[13px]"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={onEditSave}
+                      disabled={isUpdatingProduct}
+                      className="flex-1 rounded-full bg-[#0A0A0A] text-white px-3 py-2 text-[11px] uppercase tracking-[0.1em] disabled:opacity-60"
+                    >
+                      {isUpdatingProduct ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onEditCancel}
+                      className="flex-1 rounded-full border border-[#C9A14A]/40 text-[#333333] px-3 py-2 text-[11px] uppercase tracking-[0.1em]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-                <p className="text-[13px] text-[#C9A14A] font-semibold">
-                  AED {product.offerPrice} / <span className="line-through text-[#999999]">{product.actualPrice}</span>
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onViewProduct(product)}
-                    className="flex-1 rounded-full bg-[#0A0A0A] text-white px-3 py-2 text-[11px] uppercase tracking-[0.1em]"
-                  >
-                    View
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onEditStart(product)}
-                    className="flex-1 rounded-full border border-[#C9A14A]/40 text-[#333333] px-3 py-2 text-[11px] uppercase tracking-[0.1em]"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteProduct(product)}
-                    disabled={deletingProductId === product.id}
-                    className="flex-1 rounded-full border border-red-500/40 text-red-600 px-3 py-2 text-[11px] uppercase tracking-[0.1em] disabled:opacity-60"
-                  >
-                    {deletingProductId === product.id ? "Deleting..." : "Delete"}
-                  </button>
-                </div>
-              </div>
+              ) : (
+                <>
+                  
+                  <div className="p-4 space-y-3">
+                    <div>
+                      <h3 className="text-xl text-[#0A0A0A] font-semibold">{product.name}</h3>
+                      <p className="text-[13px] text-[#666666] mt-1 line-clamp-2">{product.description}</p>
+                    </div>
+                    <p className="text-[13px] text-[#C9A14A] font-semibold">
+                      AED {product.offerPrice} / <span className="line-through text-[#999999]">{product.actualPrice}</span>
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onViewProduct(product)}
+                        className="flex-1 rounded-full bg-[#0A0A0A] text-white px-3 py-2 text-[11px] uppercase tracking-[0.1em]"
+                      >
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onEditStart(product)}
+                        className="flex-1 rounded-full border border-[#C9A14A]/40 text-[#333333] px-3 py-2 text-[11px] uppercase tracking-[0.1em]"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteProduct(product)}
+                        disabled={deletingProductId === product.id}
+                        className="flex-1 rounded-full border border-red-500/40 text-red-600 px-3 py-2 text-[11px] uppercase tracking-[0.1em] disabled:opacity-60"
+                      >
+                        {deletingProductId === product.id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
