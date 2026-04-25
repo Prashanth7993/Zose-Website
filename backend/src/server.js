@@ -157,10 +157,25 @@ const upload = multer({
 
 const app = express();
 // app.use(cors({ origin: true, credentials: true }));
-app.use(cors({ 
-  origin: process.env.FRONTEND_URL || "http://localhost:5173",
-  credentials: true 
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://zose-frontend.onrender.com", // add your production frontend URL
+];
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
+app.options("/{*splat}", cors());
 app.use(express.json());
 app.use("/uploads", express.static(UPLOADS_DIR));
 app.use((req, res, next) => {
