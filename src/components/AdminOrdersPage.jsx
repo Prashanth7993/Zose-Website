@@ -390,7 +390,7 @@ export default function AdminOrdersPage() {
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {ORDER_STAGES.map((stage, index) => {
-                          const isCompleted = index < currentStageIndex || (justCompletedStage === stage.id && index === currentStageIndex) || (stage.id === "delivered" && order.status === "delivered" && index < currentStageIndex);
+                          const isCompleted = index < currentStageIndex || order.status === stage.id || (justCompletedStage === stage.id && index === currentStageIndex);
                           const isCurrent = index === currentStageIndex;
                           const isPending = index > currentStageIndex;
                           const isUpdating = updatingStage === stage.id;
