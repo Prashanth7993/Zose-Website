@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
+  phone VARCHAR(50),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -45,6 +46,27 @@ CREATE TABLE IF NOT EXISTS products (
   created_by VARCHAR(255) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+`;
+
+const MYSQL_ORDERS_TABLE_SQL = `
+CREATE TABLE IF NOT EXISTS orders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id VARCHAR(50) NOT NULL UNIQUE,
+  user_id INT,
+  customer_name VARCHAR(255) NOT NULL,
+  customer_phone VARCHAR(50) NOT NULL,
+  customer_address TEXT NOT NULL,
+  customer_email VARCHAR(255),
+  products_json JSON NOT NULL,
+  total_amount DECIMAL(10, 2) NOT NULL,
+  payment_mode VARCHAR(50) DEFAULT 'COD',
+  status VARCHAR(50) DEFAULT 'placed',
+  timeline_json JSON,
+  third_party_tracking_json JSON,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id)
 );
 `;
 
@@ -122,9 +144,32 @@ export const migrateDatabase = async () => {
   if (DB_CLIENT === "mysql") {
     await db.exec(MYSQL_USERS_TABLE_SQL);
     await db.exec(MYSQL_PRODUCTS_TABLE_SQL);
+    await db.exec(MYSQL_ORDERS_TABLE_SQL);
+    // Add missing columns to existing tables (MySQL does not support ADD COLUMN IF NOT EXISTS)
+    try {
+      await db.exec("ALTER TABLE users ADD COLUMN phone VARCHAR(50) AFTER password_hash;");
+    } catch (e) {
+      // Column may already exist - ignore error
+    }
+    try {
+      await db.exec("ALTER TABLE orders ADD COLUMN timeline_json JSON AFTER status;");
+    } catch (e) {
+      // Column may already exist - ignore error
+    }
+    try {
+      await db.exec("ALTER TABLE orders ADD COLUMN third_party_tracking_json JSON AFTER timeline_json;");
+    } catch (e) {
+      // Column may already exist - ignore error
+    }
   } else {
     const schema = readFileSync(SCHEMA_PATH, "utf8");
     await db.exec(schema);
+    // Add phone column if it doesn't exist (for existing databases)
+    try {
+      await db.exec("ALTER TABLE users ADD COLUMN phone TEXT;");
+    } catch (e) {
+      // Column may already exist - ignore error
+    }
   }
   return db;
 };

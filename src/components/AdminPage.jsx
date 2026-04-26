@@ -9,6 +9,7 @@ import {
   uploadAdminImages,
   validateAdminSession,
 } from "../lib/auth";
+import AdminOrdersPage from "./AdminOrdersPage";
 
 const colorOptions = ["Black", "White", "Merun", "Sky blue", "Bottle green", "Navy blue"];
 const sizeOptions = ["M", "L", "XL", "2XL", "3XL"];
@@ -243,7 +244,16 @@ function UploadProductPage({
             <div className="h-64 bg-[#f8f8f8] p-3">
               {uploadedImages[previewIndex] ? (
                 <div className="h-full relative">
-                  <img src={uploadedImages[previewIndex].previewUrl} alt="Preview" className="h-full w-full object-contain" />
+                  <img src={uploadedImages[previewIndex].previewUrl} alt="Preview" className="h-full w-full object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      const placeholder = e.currentTarget.parentElement.querySelector(".preview-unavailable");
+                      if (placeholder) placeholder.style.display = "grid";
+                    }}
+                  />
+                  <div className="preview-unavailable hidden absolute inset-0 place-items-center text-[12px] text-[#777777]">
+                    Image unavailable
+                  </div>
                   {uploadedImages.length > 1 && (
                     <>
                       <button
@@ -320,10 +330,19 @@ function ProductsPage({
           {savedProducts.map((product) => (
             <div key={product.id} className="rounded-xl border border-[#C9A14A]/20 overflow-hidden">
               <img
-                    src={resolveImageSrc(product.images?.[0])}
-                    alt={product.name}
-                    className="w-full h-52 object-contain bg-[#f2f2f2]"
+                src={resolveImageSrc(product.images?.[0])}
+                alt={product.name}
+                className="w-full h-52 object-contain bg-[#f2f2f2]"
+                onError={(e) => {
+                  e.currentTarget.src = "";
+                  e.currentTarget.style.display = "none";
+                  const placeholder = e.currentTarget.parentElement.querySelector(".image-unavailable");
+                  if (placeholder) placeholder.style.display = "grid";
+                }}
               />
+              <div className="image-unavailable hidden h-52 bg-[#f2f2f2] place-items-center text-[12px] text-[#777777]">
+                Image unavailable
+              </div>
               {editingProductId === product.id ? (
                 <div className="p-4 space-y-3">
                   <input
@@ -691,13 +710,13 @@ export default function AdminPage({ onUnauthorized, onProductSaved }) {
         >
           Products
         </button>
-        {/* <button
+        <button
           type="button"
-          onClick={onOrdersClick}
+          onClick={() => navigate("/admin/orders")}
           className="rounded-full border border-[#C9A14A]/40 hover:border-[#C9A14A] text-[#0A0A0A] px-5 py-2.5 text-[11px] tracking-[0.12em] uppercase font-semibold"
         >
           Orders
-        </button> */}
+        </button>
         <button
           type="button"
           onClick={() => navigate("/admin/upload")}
@@ -757,6 +776,10 @@ export default function AdminPage({ onUnauthorized, onProductSaved }) {
             />
           }
         />
+        <Route
+          path="orders"
+          element={<AdminOrdersPage />}
+        />
         <Route path="*" element={<Navigate to="/admin/products" replace />} />
       </Routes>
 
@@ -796,7 +819,15 @@ export default function AdminPage({ onUnauthorized, onProductSaved }) {
                         ? "slide-in-left 260ms ease"
                         : "slide-in-right 260ms ease",
                     }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      const placeholder = e.currentTarget.parentElement.querySelector(".view-modal-unavailable");
+                      if (placeholder) placeholder.style.display = "grid";
+                    }}
                   />
+                  <div className="view-modal-unavailable hidden absolute inset-0 place-items-center text-[12px] text-[#777777]">
+                    Image unavailable
+                  </div>
                   {(viewProduct.images || []).length > 1 && (
                     <>
                       <button
@@ -833,7 +864,16 @@ export default function AdminPage({ onUnauthorized, onProductSaved }) {
                         }`}
                         aria-label={`View image ${index + 1}`}
                       >
-                        <img src={resolveImageSrc(image)} alt={`${viewProduct.name} thumbnail ${index + 1}`} className="h-full w-full object-contain bg-[#f3f3f3]" />
+                        <img src={resolveImageSrc(image)} alt={`${viewProduct.name} thumbnail ${index + 1}`} className="h-full w-full object-contain bg-[#f3f3f3]"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            const placeholder = e.currentTarget.parentElement.querySelector(`.view-thumb-unavailable-${index}`);
+                            if (placeholder) placeholder.style.display = "grid";
+                          }}
+                        />
+                        <div className={`view-thumb-unavailable-${index} hidden h-full w-full place-items-center text-[8px] text-[#777777] bg-[#f3f3f3]`}>
+                          No image
+                        </div>
                       </button>
                     ))}
                   </div>

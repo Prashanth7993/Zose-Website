@@ -106,6 +106,14 @@ export const validateStoredToken = async () => authFetch("/api/auth/validate");
 
 export const validateAdminSession = async () => authFetch("/api/admin/validate");
 
+// Update user's phone number in database
+export const updateUserPhone = async (phone) =>
+  authFetch("/api/auth/phone", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone }),
+  });
+
 export const createAdminProduct = async (payload) =>
   authFetch("/api/admin/products", {
     method: "POST",
@@ -149,3 +157,52 @@ export const fetchProducts = async () => {
 };
 
 export const fetchAdminProducts = async () => authFetch("/api/admin/products");
+
+// ==================== ORDER API FUNCTIONS ====================
+
+// Create order after WhatsApp placement
+export const createOrder = async (orderData) => {
+  const response = await fetch(`${API_BASE_URL}/api/orders`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      customerName: orderData.customerName,
+      customerPhone: orderData.customerPhone,
+      customerAddress: orderData.customerAddress,
+      customerEmail: orderData.customerEmail,
+      products: orderData.products,
+      totalAmount: orderData.totalAmount,
+      paymentMode: orderData.paymentMode || "COD",
+      userId: orderData.userId,
+    }),
+  });
+  return parseResponse(response);
+};
+
+// Get order by ID (for tracking page)
+export const getOrderById = async (orderId) => {
+  const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}`);
+  return parseResponse(response);
+};
+
+// Get user's orders (logged-in users)
+export const getUserOrders = async () => authFetch("/api/orders/user");
+
+// Admin: Get all orders
+export const getAdminOrders = async () => authFetch("/api/admin/orders");
+
+// Admin: Update order status (confirm a stage)
+export const updateOrderStatus = async (orderId, stage, confirmed) =>
+  authFetch(`/api/admin/orders/${orderId}/status`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ stage, confirmed }),
+  });
+
+// Admin: Add third-party tracking info
+export const addThirdPartyTracking = async (orderId, courierName, trackingId) =>
+  authFetch(`/api/admin/orders/${orderId}/third-party`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ courierName, trackingId }),
+  });

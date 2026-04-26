@@ -12,6 +12,8 @@ import FloatingContactButtons from "./components/FloatingContactButtons";
 import DubaiShowcaseSection from "./components/DubaiShowcaseSection";
 import CollectionPage from "./components/CollectionPage";
 import AdminPage from "./components/AdminPage";
+import OrderTrackingPage from "./components/OrderTrackingPage";
+import MyOrdersPage from "./components/MyOrdersPage";
 import { clearStoredSession, fetchProducts, loadStoredUser, storeAuthSession } from "./lib/auth";
 
 const mapApiProductToCard = (product) => ({
@@ -120,6 +122,8 @@ function App() {
           element={<HomePage onShopClick={() => setAuthModal("register")} products={products} isProductsLoading={isProductsLoading} />}
         />
         <Route path="/collections" element={<CollectionPage products={products} isLoading={isProductsLoading} />} />
+        <Route path="/track-order" element={<OrderTrackingPage />} />
+        <Route path="/my-orders" element={user ? <MyOrdersPage /> : <Navigate to="/" replace />} />
         <Route
           path="/admin/*"
           element={
@@ -173,22 +177,9 @@ function App() {
                     className="text-lg text-[#C9A14A] font-semibold"
                     style={{ fontFamily: "'Cormorant Garamond', serif" }}
                   >
-                    Please login to check with your order.
+                    Track Your Order
                   </p>
-                  <p className="text-[12px] text-[#666666]">Premium support is available for signed-in customers.</p>
-                  <button
-                    onClick={() => {
-                      setOrdersModal(null);
-                      setAuthModal("login");
-                    }}
-                    className="bg-[#C9A14A] hover:bg-[#E8C97A] text-[#0A0A0A] text-[11px] font-semibold tracking-[0.12em] uppercase px-5 py-2.5 rounded-full transition-colors"
-                  >
-                    Login Now
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-[13px] text-[#333333]">Please input the order number to check with your order.</p>
+                  <p className="text-[12px] text-[#666666]">Enter your Order ID to check status</p>
                   <input
                     type="text"
                     value={orderLookupNumber}
@@ -196,9 +187,67 @@ function App() {
                     placeholder="Enter order number (e.g. ZOSE-123456)"
                     className="w-full border border-[#C9A14A]/30 focus:border-[#C9A14A] outline-none rounded-lg px-3 py-2.5 text-[13px]"
                   />
-                  <button className="w-full bg-[#C9A14A] hover:bg-[#E8C97A] text-[#0A0A0A] text-[11px] font-semibold tracking-[0.12em] uppercase py-2.5 rounded-full transition-colors">
-                    Check Order
+                  <button
+                    onClick={() => {
+                      if (orderLookupNumber.trim()) {
+                        window.location.href = `/track-order?id=${encodeURIComponent(orderLookupNumber.trim())}`;
+                      }
+                    }}
+                    className="bg-[#C9A14A] hover:bg-[#E8C97A] text-[#0A0A0A] text-[11px] font-semibold tracking-[0.12em] uppercase px-5 py-2.5 rounded-full transition-colors"
+                  >
+                    Track Order
                   </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-center space-y-3">
+                    <p
+                      className="text-lg text-[#C9A14A] font-semibold"
+                      style={{ fontFamily: "'Cormorant Garamond', serif" }}
+                    >
+                      Track Your Order
+                    </p>
+                    <p className="text-[12px] text-[#666666]">Enter your Order ID to check status</p>
+                    <input
+                      type="text"
+                      value={orderLookupNumber}
+                      onChange={(event) => setOrderLookupNumber(event.target.value)}
+                      placeholder="Enter order number (e.g. ZOSE-123456)"
+                      className="w-full border border-[#C9A14A]/30 focus:border-[#C9A14A] outline-none rounded-lg px-3 py-2.5 text-[13px]"
+                    />
+                    <button
+                      onClick={() => {
+                        if (orderLookupNumber.trim()) {
+                          window.location.href = `/track-order?id=${encodeURIComponent(orderLookupNumber.trim())}`;
+                        }
+                      }}
+                      className="w-full bg-[#C9A14A] hover:bg-[#E8C97A] text-[#0A0A0A] text-[11px] font-semibold tracking-[0.12em] uppercase py-2.5 rounded-full transition-colors"
+                    >
+                      Track Order
+                    </button>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-[#C9A14A]/20"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-3 text-[#777777]">or</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-[13px] text-[#333333] text-center">Your orders and order history</p>
+                    <button
+                      onClick={() => {
+                        setOrdersModal(null);
+                        navigate("/my-orders");
+                      }}
+                      className="w-full bg-[#C9A14A] hover:bg-[#E8C97A] text-[#0A0A0A] text-[11px] font-semibold tracking-[0.12em] uppercase py-2.5 rounded-full transition-colors"
+                    >
+                      View My Orders
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

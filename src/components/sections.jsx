@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import geminiTshirtImage from "../assets/Gemini_Generated_Image_xuqw8oxuqw8oxuqw.png";
 import zoseLogo from "../assets/zose.jpeg";
-import { resolveApiAssetUrl } from "../lib/auth";
+import { resolveApiAssetUrl, createOrder, loadStoredUser, updateUserPhone } from "../lib/auth";
 
 // MarqueeBanner.jsx
 export function MarqueeBanner() {
@@ -102,6 +102,9 @@ export function CollectionsSection({
     const mapped = colorImageMap[color];
     if (Array.isArray(mapped)) return mapped.filter(Boolean);
     if (typeof mapped === "string" && mapped) return [mapped];
+    // If a color map exists but this color has no valid image, do not
+    // silently fall back to another product image.
+    if (Object.keys(colorImageMap).length > 0) return [];
     return Array.isArray(product.images) ? product.images : [];
   };
 
@@ -130,14 +133,19 @@ export function CollectionsSection({
     setSelectedImageIndex(0);
     setSelectedSize(product.sizes?.[0] || sizeOptions[0]);
     setQuantity(1);
-    setCustomerName("");
-    setCustomerPhone("");
+
+    // Pre-fill customer details from logged-in user
+    const loggedInUser = loadStoredUser();
+    setCustomerName(loggedInUser?.name || "");
+    // Strip +971 prefix if stored, keep just the number for input
+    const storedPhone = loggedInUser?.phone || "";
+    setCustomerPhone(storedPhone.startsWith("+971") ? storedPhone.slice(4) : storedPhone);
     setCustomerAddress("");
   };
 
   const closeOrderPopup = () => setSelectedProduct(null);
 
-  const handleConfirmOrder = () => {
+  const handleConfirmOrder = async () => {
     if (!selectedProduct) return;
     const orderNumber = `ZOSE-${Date.now().toString().slice(-6)}`;
     const totalAmount = selectedProduct.offerPrice * quantity;
@@ -160,10 +168,55 @@ export function CollectionsSection({
       `Total Amount: AED ${totalAmount}`,
       "Payment Mode: COD",
     ].join("\n");
+
+    // Open WhatsApp first
     window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(orderMessage)}`, "_blank");
+
+    // Create order in database after WhatsApp opens
+    setTimeout(async () => {
+      try {
+        const loggedInUser = loadStoredUser();
+        const fullPhone = normalizedCustomerPhone ? `+971${normalizedCustomerPhone}` : "Not provided";
+
+        // Update user's phone in database if logged in and phone was changed
+        if (loggedInUser?.id && fullPhone && fullPhone !== "Not provided") {
+          try {
+            await updateUserPhone(fullPhone);
+          } catch (phoneErr) {
+            console.warn("Failed to update phone:", phoneErr);
+          }
+        }
+
+        await createOrder({
+          orderId: orderNumber,
+          userId: loggedInUser?.id || null,
+          customerName: customerName || "Not provided",
+          customerPhone: fullPhone,
+          customerAddress: customerAddress || "Not provided",
+          customerEmail: loggedInUser?.email || null,
+          products: [{
+            productId: selectedProduct.id,
+            name: selectedProduct.name,
+            color: selectedColor,
+            size: selectedSize,
+            quantity,
+            price: selectedProduct.offerPrice,
+          }],
+          totalAmount,
+          paymentMode: "COD",
+        });
+      } catch (err) {
+        console.error("Failed to create order:", err);
+      }
+    }, 1000);
+
     closeOrderPopup();
-    setOrderSuccessMessage(`Order successful. Your order number is ${orderNumber}.`);
-    window.setTimeout(() => setOrderSuccessMessage(""), 5000);
+    setOrderSuccessMessage({
+      type: "success",
+      orderId: orderNumber,
+      message: `Order ${orderNumber} placed successfully!`,
+    });
+    window.setTimeout(() => setOrderSuccessMessage(""), 10000);
   };
 
   return (
@@ -200,9 +253,14 @@ export function CollectionsSection({
                     alt={`${col.name} preview`}
                     className="absolute inset-0 h-full w-full object-contain"
                     onError={(event) => {
-                      event.currentTarget.src = geminiTshirtImage;
+                      event.currentTarget.style.display = "none";
+                      const placeholder = event.currentTarget.parentElement.querySelector(".image-unavailable");
+                      if (placeholder) placeholder.style.display = "grid";
                     }}
                   />
+                  <div className="image-unavailable hidden absolute inset-0 place-items-center text-[12px] text-[#777777]">
+                    Image unavailable
+                  </div>
                 </div>
               </div>
 
@@ -268,13 +326,18 @@ export function CollectionsSection({
               <div className="rounded-xl border border-[#C9A14A]/20 overflow-hidden bg-[#f7f8fb]">
                 <div className="relative aspect-[4/3] sm:aspect-[16/10]">
                   <img
-                    src={resolveProductImageSrc(getImagesForColor(selectedProduct, selectedColor)[selectedImageIndex] || geminiTshirtImage)}
+                    src={resolveProductImageSrc(getImagesForColor(selectedProduct, selectedColor)[selectedImageIndex] || "")}
                     alt={`${selectedProduct.name} in ${selectedColor}`}
                     className="absolute inset-0 h-full w-full object-contain transition-all duration-300"
                     onError={(event) => {
-                      event.currentTarget.src = geminiTshirtImage;
+                      event.currentTarget.style.display = "none";
+                      const placeholder = event.currentTarget.parentElement.querySelector(".modal-image-unavailable");
+                      if (placeholder) placeholder.style.display = "grid";
                     }}
                   />
+                  <div className="modal-image-unavailable hidden absolute inset-0 place-items-center text-[12px] text-[#777777] bg-[#f3f3f3]">
+                    Image unavailable
+                  </div>
                   {getImagesForColor(selectedProduct, selectedColor).length > 1 && (
                     <>
                       <button
@@ -320,9 +383,14 @@ export function CollectionsSection({
                         alt={`${selectedProduct.name} ${selectedColor} ${index + 1}`}
                         className="h-full w-full object-cover"
                         onError={(event) => {
-                          event.currentTarget.src = geminiTshirtImage;
+                          event.currentTarget.style.display = "none";
+                          const placeholder = event.currentTarget.parentElement.querySelector(`.thumb-unavailable-${index}`);
+                          if (placeholder) placeholder.style.display = "grid";
                         }}
                       />
+                      <div className={`thumb-unavailable-${index} hidden h-full w-full place-items-center text-[9px] text-[#777777] bg-[#f3f3f3]`}>
+                        No image
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -462,7 +530,47 @@ export function CollectionsSection({
           </div>
         </div>
       )}
-      {orderSuccessMessage && (
+      {orderSuccessMessage && typeof orderSuccessMessage === "object" && (
+        <div className="fixed bottom-5 right-5 z-[55] bg-[#0A0A0A] text-white border border-[#C9A14A]/40 px-5 py-4 rounded-2xl shadow-xl max-w-sm">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-lg flex-shrink-0">
+              ✓
+            </div>
+            <div className="flex-1">
+              <p className="text-[11px] uppercase tracking-wider text-[#C9A14A] font-semibold mb-0.5">
+                Order Placed
+              </p>
+              <p className="text-[13px] text-white mb-2">{orderSuccessMessage.message}</p>
+              <div className="flex items-center gap-2 p-2 bg-white/10 rounded-lg">
+                <p className="text-[12px] font-mono text-[#C9A14A] flex-1">{orderSuccessMessage.orderId}</p>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(orderSuccessMessage.orderId);
+                  }}
+                  className="text-[10px] text-white hover:text-[#C9A14A] underline"
+                >
+                  Copy
+                </button>
+              </div>
+              <div className="flex items-center gap-2 mt-3">
+                <a
+                  href="/track-order"
+                  className="flex-1 bg-[#C9A14A] hover:bg-[#E8C97A] text-[#0A0A0A] text-center px-3 py-2 rounded-full text-[9px] font-semibold uppercase tracking-wider transition-colors"
+                >
+                  Track Order
+                </a>
+                <button
+                  onClick={() => setOrderSuccessMessage("")}
+                  className="text-[10px] text-white/70 hover:text-white underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {orderSuccessMessage && typeof orderSuccessMessage === "string" && (
         <div className="fixed bottom-5 right-5 z-[55] bg-[#0A0A0A] text-white border border-[#C9A14A]/40 px-4 py-3 rounded-lg shadow-xl max-w-sm">
           <p className="text-[12px] sm:text-[13px]">{orderSuccessMessage}</p>
         </div>

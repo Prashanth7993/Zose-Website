@@ -43,18 +43,20 @@ const sanitizeUser = (user) => ({
   id: user.id,
   name: user.name,
   email: user.email,
+  phone: user.phone,
   isAdmin: Boolean(user.isAdmin),
   createdAt: user.created_at,
   updatedAt: user.updated_at,
 });
 
-const issueToken = (user) =>
+const issueToken = (user, extraFields = {}) =>
   jwt.sign(
     {
       sub: user.id,
       email: user.email,
       name: user.name,
       isAdmin: Boolean(user.isAdmin),
+      ...extraFields,
     },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
@@ -203,6 +205,7 @@ app.post("/api/auth/register", async (req, res) => {
   const name = String(req.body?.name || "").trim();
   const email = normalizeEmail(req.body?.email);
   const password = String(req.body?.password || "");
+  const phone = String(req.body?.phone || "");
 
   if (!name) {
     return res.status(400).json({ message: "Name is required." });
@@ -217,15 +220,15 @@ app.post("/api/auth/register", async (req, res) => {
   try {
     const passwordHash = createPasswordHash(password);
     const result = await db.run(
-      "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-      [name, email, passwordHash]
+      "INSERT INTO users (name, email, password_hash, phone) VALUES (?, ?, ?, ?)",
+      [name, email, passwordHash, phone || null]
     );
     const createdUser = await db.get("SELECT * FROM users WHERE id = ?", [result.lastID]);
 
     return res.status(201).json({
       message: "Account created successfully.",
       user: sanitizeUser(createdUser),
-      token: issueToken(createdUser),
+      token: issueToken(createdUser, { phone: createdUser.phone }),
     });
   } catch (error) {
     if (String(error?.message || "").includes("UNIQUE constraint failed")) {
@@ -262,7 +265,7 @@ app.post("/api/auth/login", async (req, res) => {
     return res.json({
       message: "Login successful.",
       user: sanitizeUser({ ...user, isAdmin: false }),
-      token: issueToken({ ...user, isAdmin: false }),
+      token: issueToken({ ...user, isAdmin: false }, { phone: user.phone }),
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -292,6 +295,35 @@ app.get("/api/auth/validate", requireAuth, async (req, res) => {
   } catch (error) {
     console.error("Token validate error:", error);
     return res.status(500).json({ message: "Unable to validate token right now." });
+  }
+});
+
+// Update user's phone number
+app.put("/api/auth/phone", requireAuth, async (req, res) => {
+  if (req.auth?.isAdmin) {
+    return res.status(400).json({ message: "Cannot update admin phone via this endpoint." });
+  }
+
+  const phone = String(req.body?.phone || "").trim();
+
+  if (!phone) {
+    return res.status(400).json({ message: "Phone number is required." });
+  }
+
+  try {
+    await db.run(
+      "UPDATE users SET phone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [phone, req.auth.sub]
+    );
+
+    const updatedUser = await db.get("SELECT * FROM users WHERE id = ?", [req.auth.sub]);
+    return res.json({
+      message: "Phone number updated successfully.",
+      user: sanitizeUser({ ...updatedUser, isAdmin: false }),
+    });
+  } catch (error) {
+    console.error("Update phone error:", error);
+    return res.status(500).json({ message: "Unable to update phone number right now." });
   }
 });
 
@@ -496,6 +528,336 @@ app.delete("/api/admin/products/:id", requireAuth, requireAdmin, async (req, res
   } catch (error) {
     console.error("Admin product delete error:", error);
     return res.status(500).json({ message: "Unable to delete product right now." });
+  }
+});
+
+// ==================== ORDER ENDPOINTS ====================
+
+const generateOrderId = () => {
+  const randomNum = Math.floor(Math.random() * 900000) + 100000;
+  return `ZOSE-${randomNum}`;
+};
+
+const sanitizeOrder = (order) => ({
+  id: order.id,
+  orderId: order.order_id,
+  userId: order.user_id,
+  customerDetails: {
+    name: order.customer_name,
+    phone: order.customer_phone,
+    address: order.customer_address,
+    email: order.customer_email,
+  },
+  products: parseJsonField(order.products_json, []),
+  totalAmount: Number(order.total_amount),
+  paymentMode: order.payment_mode || "COD",
+  status: order.status,
+  timeline: parseJsonField(order.timeline_json, []),
+  thirdPartyTracking: parseJsonField(order.third_party_tracking_json, {}),
+  createdAt: order.created_at,
+  updatedAt: order.updated_at,
+});
+
+// Get user's orders (requires auth) - placed BEFORE /:orderId to avoid Express treating "user" as an orderId
+app.get("/api/orders/user", requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth.sub;
+    const userEmail = req.auth.email;
+    const userPhone = req.auth.phone;
+
+    console.log(`[getUserOrders] userId=${userId}, email=${userEmail}, phone=${userPhone}`);
+
+    // For admin users (sub === "admin"), fetch orders by email match
+    if (userId === "admin") {
+      const orders = await db.all(
+        "SELECT * FROM orders WHERE customer_email = ? ORDER BY created_at DESC",
+        [userEmail]
+      );
+      return res.json({ orders: orders.map(sanitizeOrder) });
+    }
+
+    // For regular users, match by user_id (numeric) OR customer_phone OR customer_email
+    const numericUserId = parseInt(String(userId || ""), 10);
+    const searchPhone = userPhone ? String(userPhone).trim() : "";
+
+    console.log(`[getUserOrders] numericUserId=${numericUserId}, searchPhone="${searchPhone}"`);
+
+    const orders = await db.all(
+      `SELECT * FROM orders
+       WHERE (? IS NOT NULL AND user_id = ?)
+          OR customer_phone = ?
+          OR customer_email = ?
+       ORDER BY created_at DESC`,
+      [numericUserId || null, numericUserId, searchPhone, userEmail || ""]
+    );
+
+    console.log(`[getUserOrders] found ${orders.length} orders`);
+    return res.json({ orders: orders.map(sanitizeOrder) });
+  } catch (error) {
+    console.error("Fetch user orders error:", error);
+    return res.status(500).json({ message: "Unable to fetch orders right now." });
+  }
+});
+
+// Public: Get order by ID (for tracking page) - MUST be AFTER /user route
+app.get("/api/orders/:orderId", async (req, res) => {
+  const orderId = String(req.params.orderId || "").trim().toUpperCase();
+
+  if (!orderId) {
+    return res.status(400).json({ message: "Order ID is required." });
+  }
+
+  try {
+    const order = await db.get("SELECT * FROM orders WHERE order_id = ?", [orderId]);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+    return res.json({ order: sanitizeOrder(order) });
+  } catch (error) {
+    console.error("Fetch order error:", error);
+    return res.status(500).json({ message: "Unable to fetch order right now." });
+  }
+});
+
+// Create order (after WhatsApp placement)
+app.post("/api/orders", async (req, res) => {
+  const {
+    customerName,
+    customerPhone,
+    customerAddress,
+    customerEmail,
+    products,
+    totalAmount,
+    paymentMode = "COD",
+    userId,
+  } = req.body || {};
+
+  if (!customerName || !customerPhone || !customerAddress) {
+    return res.status(400).json({ message: "Customer name, phone, and address are required." });
+  }
+  if (!Array.isArray(products) || !products.length) {
+    return res.status(400).json({ message: "At least one product is required." });
+  }
+  if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+    return res.status(400).json({ message: "Total amount must be greater than 0." });
+  }
+
+  const orderId = generateOrderId();
+  const timeline = [
+    { stage: "placed", label: "Order Placed", timestamp: new Date().toISOString(), confirmed: true },
+  ];
+
+  // Normalize userId: must be a finite number or null
+  const normalizedUserId = Number.isFinite(Number(userId)) ? Number(userId) : null;
+
+  try {
+    const result = await db.run(
+      `INSERT INTO orders
+      (order_id, user_id, customer_name, customer_phone, customer_address, customer_email, products_json, total_amount, payment_mode, timeline_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        orderId,
+        normalizedUserId,
+        customerName,
+        customerPhone,
+        customerAddress,
+        customerEmail || null,
+        JSON.stringify(products),
+        totalAmount,
+        paymentMode,
+        JSON.stringify(timeline),
+      ]
+    );
+
+    const createdOrder = await db.get("SELECT * FROM orders WHERE id = ?", [result.lastID]);
+    return res.status(201).json({
+      message: "Order created successfully.",
+      order: sanitizeOrder(createdOrder),
+    });
+  } catch (error) {
+    console.error("Create order error:", error);
+    return res.status(500).json({ message: "Unable to create order right now." });
+  }
+});
+
+// Get user's orders (requires auth)
+app.get("/api/orders/user", requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth.sub;
+    const userEmail = req.auth.email;
+    const userPhone = req.auth.phone;
+
+    console.log(`[getUserOrders] userId=${userId}, email=${userEmail}, phone=${userPhone}`);
+
+    // For admin users (sub === "admin"), fetch orders by email match
+    if (userId === "admin") {
+      const orders = await db.all(
+        "SELECT * FROM orders WHERE customer_email = ? ORDER BY created_at DESC",
+        [userEmail]
+      );
+      return res.json({ orders: orders.map(sanitizeOrder) });
+    }
+
+    // For regular users, match by user_id (numeric) OR customer_phone OR customer_email
+    const numericUserId = parseInt(String(userId || ""), 10);
+    const searchPhone = userPhone ? String(userPhone).trim() : "";
+
+    console.log(`[getUserOrders] numericUserId=${numericUserId}, searchPhone="${searchPhone}"`);
+
+    const orders = await db.all(
+      `SELECT * FROM orders
+       WHERE (? IS NOT NULL AND user_id = ?)
+          OR customer_phone = ?
+          OR customer_email = ?
+       ORDER BY created_at DESC`,
+      [numericUserId || null, numericUserId, searchPhone, userEmail || ""]
+    );
+
+    console.log(`[getUserOrders] found ${orders.length} orders`);
+    return res.json({ orders: orders.map(sanitizeOrder) });
+  } catch (error) {
+    console.error("Fetch user orders error:", error);
+    return res.status(500).json({ message: "Unable to fetch orders right now." });
+  }
+});
+
+// Public: Get order by ID (for tracking page) - MUST be AFTER /user route
+app.get("/api/orders/:orderId", async (req, res) => {
+  const orderId = String(req.params.orderId || "").trim().toUpperCase();
+
+  if (!orderId) {
+    return res.status(400).json({ message: "Order ID is required." });
+  }
+
+  try {
+    const order = await db.get("SELECT * FROM orders WHERE order_id = ?", [orderId]);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+    return res.json({ order: sanitizeOrder(order) });
+  } catch (error) {
+    console.error("Fetch order error:", error);
+    return res.status(500).json({ message: "Unable to fetch order right now." });
+  }
+});
+
+// Admin: Get all orders
+app.get("/api/admin/orders", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const orders = await db.all("SELECT * FROM orders ORDER BY created_at DESC");
+    return res.json({
+      orders: orders.map(sanitizeOrder),
+    });
+  } catch (error) {
+    console.error("Fetch admin orders error:", error);
+    return res.status(500).json({ message: "Unable to fetch orders right now." });
+  }
+});
+
+// Admin: Update order status
+app.put("/api/admin/orders/:id/status", requireAuth, requireAdmin, async (req, res) => {
+  const orderId = Number(req.params.id);
+  const { stage, confirmed } = req.body || {};
+
+  if (!Number.isFinite(orderId) || orderId <= 0) {
+    return res.status(400).json({ message: "Invalid order id." });
+  }
+  if (!stage) {
+    return res.status(400).json({ message: "Stage is required." });
+  }
+
+  const STAGE_ORDER = ["placed", "confirmed", "packed", "ready_for_shipment", "shipped", "delivered"];
+
+  try {
+    const order = await db.get("SELECT * FROM orders WHERE id = ?", [orderId]);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    const timeline = parseJsonField(order.timeline_json, []);
+    const existingStageIndex = timeline.findIndex((t) => t.stage === stage);
+
+    if (existingStageIndex >= 0) {
+      timeline[existingStageIndex].confirmed = Boolean(confirmed);
+      if (confirmed) {
+        timeline[existingStageIndex].timestamp = new Date().toISOString();
+      }
+    } else if (confirmed) {
+      const stageLabels = {
+        placed: "Order Placed",
+        confirmed: "Order Confirmed",
+        packed: "Order Packed",
+        ready_for_shipment: "Ready for Shipment",
+        shipped: "Order Shipped",
+        delivered: "Delivered",
+      };
+      timeline.push({
+        stage,
+        label: stageLabels[stage] || stage,
+        timestamp: new Date().toISOString(),
+        confirmed: true,
+      });
+    }
+
+    // Determine the new status: if confirming a stage, advance to the next stage
+    // Otherwise keep the current status
+    let newStatus = order.status;
+    if (confirmed) {
+      const currentStageIndex = STAGE_ORDER.indexOf(stage);
+      const nextStage = STAGE_ORDER[currentStageIndex + 1];
+      newStatus = nextStage || stage;
+    }
+
+    await db.run(
+      "UPDATE orders SET timeline_json = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [JSON.stringify(timeline), newStatus, orderId]
+    );
+
+    const updatedOrder = await db.get("SELECT * FROM orders WHERE id = ?", [orderId]);
+    return res.json({
+      message: "Order status updated successfully.",
+      order: sanitizeOrder(updatedOrder),
+    });
+  } catch (error) {
+    console.error("Update order status error:", error);
+    return res.status(500).json({ message: "Unable to update order status right now." });
+  }
+});
+
+// Admin: Add third-party tracking
+app.put("/api/admin/orders/:id/third-party", requireAuth, requireAdmin, async (req, res) => {
+  const orderId = Number(req.params.id);
+  const { courierName, trackingId } = req.body || {};
+
+  if (!Number.isFinite(orderId) || orderId <= 0) {
+    return res.status(400).json({ message: "Invalid order id." });
+  }
+
+  try {
+    const order = await db.get("SELECT * FROM orders WHERE id = ?", [orderId]);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    const thirdPartyTracking = {
+      courierName: courierName || "",
+      trackingId: trackingId || "",
+      addedAt: new Date().toISOString(),
+    };
+
+    await db.run(
+      "UPDATE orders SET third_party_tracking_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [JSON.stringify(thirdPartyTracking), orderId]
+    );
+
+    const updatedOrder = await db.get("SELECT * FROM orders WHERE id = ?", [orderId]);
+    return res.json({
+      message: "Third-party tracking added successfully.",
+      order: sanitizeOrder(updatedOrder),
+    });
+  } catch (error) {
+    console.error("Add third-party tracking error:", error);
+    return res.status(500).json({ message: "Unable to add tracking right now." });
   }
 });
 
