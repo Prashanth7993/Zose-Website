@@ -33,7 +33,7 @@ export default function AdminOrdersPage() {
     try {
       const response = await getAdminOrders();
       setOrders(response.orders || []);
-    } catch (err) {
+    } catch (_err) {
       setError("Unable to load orders. Please try again.");
     } finally {
       setIsLoading(false);
@@ -68,7 +68,7 @@ export default function AdminOrdersPage() {
           setSelectedOrder(updatedOrder);
         }
       }
-    } catch (err) {
+    } catch (_err) {
       setSaveError("Failed to update order status.");
     } finally {
       setUpdatingStage(null);
@@ -92,7 +92,7 @@ export default function AdminOrdersPage() {
 
       // Refresh orders
       await loadOrders();
-    } catch (err) {
+    } catch (_err) {
       setSaveError("Failed to add tracking information.");
     }
   };

@@ -44,7 +44,7 @@ export default function OrderTrackingPage() {
       } else {
         setError("Order not found. Please check your Order ID.");
       }
-    } catch (err) {
+    } catch (_err) {
       setError("Unable to fetch order details. Please try again.");
     } finally {
       setIsLoading(false);
