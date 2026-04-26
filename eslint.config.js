@@ -21,6 +21,7 @@ export default [
         console: true,
         setTimeout: true,
         navigator: true,
+        alert: true,
         localStorage: true,
         sessionStorage: true,
         URL: true,

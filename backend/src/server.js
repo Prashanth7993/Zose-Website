@@ -800,12 +800,14 @@ app.put("/api/admin/orders/:id/status", requireAuth, requireAdmin, async (req, r
     }
 
     // Determine the new status: if confirming a stage, advance to the next stage
-    // Otherwise keep the current status
+    // EXCEPT: don't auto-advance from shipped to delivered - admin must click delivered's Done explicitly
     let newStatus = order.status;
     if (confirmed) {
       const currentStageIndex = STAGE_ORDER.indexOf(stage);
       const nextStage = STAGE_ORDER[currentStageIndex + 1];
-      newStatus = nextStage || stage;
+      // Only auto-advance if there IS a next stage AND it's not "delivered"
+      // For "delivered" stage or last stage, stay at current stage
+      newStatus = (nextStage && nextStage !== "delivered") ? nextStage : stage;
     }
 
     await db.run(

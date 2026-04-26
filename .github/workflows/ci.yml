@@ -39,11 +39,11 @@ jobs:
         context: .
         file: ./Dockerfile.frontend
         push: true
-        tags: prashanth7993/zose-frontend:1.4.1
+        tags: prashanth7993/zose-frontend:1.5.0
     - name: Build and push backend
       uses: docker/build-push-action@v4
       with:
         context: ./backend
         file: ./Dockerfile.backend
         push: true
-        tags: prashanth7993/zose-backend:1.4.1
+        tags: prashanth7993/zose-backend:1.5.0

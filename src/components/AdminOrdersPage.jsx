@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { getAdminOrders, updateOrderStatus, addThirdPartyTracking } from "../lib/auth";
+import ExcelJS from "exceljs";
 import OrderStatusTimeline from "./OrderStatusTimeline";
 
 const ORDER_STAGES = [
@@ -18,10 +19,13 @@ export default function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [updatingStage, setUpdatingStage] = useState(null);
   const [highlightNextStage, setHighlightNextStage] = useState(null);
+  const [justCompletedStage, setJustCompletedStage] = useState(null);
   const [trackingCourier, setTrackingCourier] = useState("");
   const [trackingId, setTrackingId] = useState("");
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
+  const [statusFilter, setStatusFilter] = useState(null);
 
   useEffect(() => {
     loadOrders();
@@ -40,6 +44,96 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const statusCounts = useMemo(() => {
+    const counts = { all: orders.length };
+    ORDER_STAGES.forEach(stage => {
+      counts[stage.id] = orders.filter(o => o.status === stage.id).length;
+    });
+    return counts;
+  }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    if (!statusFilter) return orders;
+    return orders.filter(o => o.status === statusFilter);
+  }, [orders, statusFilter]);
+
+  const handleExportToExcel = async () => {
+    setIsExporting(true);
+    try {
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "ZOSE Admin";
+      workbook.created = new Date();
+
+      const sheet = workbook.addWorksheet("All Orders");
+
+      sheet.columns = [
+        { header: "Order ID", key: "orderId", width: 14 },
+        { header: "Date", key: "createdAt", width: 12 },
+        { header: "Customer Name", key: "customerName", width: 22 },
+        { header: "Phone", key: "phone", width: 16 },
+        { header: "Address", key: "address", width: 30 },
+        { header: "Email", key: "email", width: 24 },
+        { header: "Status", key: "status", width: 16 },
+        { header: "Products", key: "products", width: 40 },
+        { header: "Total (AED)", key: "totalAmount", width: 12 },
+        { header: "Payment Mode", key: "paymentMode", width: 12 },
+      ];
+
+      // Style header row
+      sheet.getRow(1).font = { bold: true };
+      sheet.getRow(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF8F7F2" }
+      };
+      sheet.getRow(1).border = {
+        bottom: { style: "thin", color: { argb: "FFC9A14A" } }
+      };
+
+      // Add data rows (ALL orders, not filtered)
+      orders.forEach((order) => {
+        const productsList = order.products
+          ?.map(p => `${p.name} (${p.color}, ${p.size}) x${p.quantity}`)
+          ?.join("; ") || "";
+
+        sheet.addRow({
+          orderId: order.orderId,
+          createdAt: new Date(order.createdAt).toLocaleDateString("en-GB"),
+          customerName: order.customerDetails?.name || "",
+          phone: order.customerDetails?.phone || "",
+          address: order.customerDetails?.address || "",
+          email: order.customerDetails?.email || "",
+          status: order.status?.replace("_", " ").toUpperCase() || "",
+          products: productsList,
+          totalAmount: order.totalAmount,
+          paymentMode: order.paymentMode || "COD",
+        });
+      });
+
+      sheet.autoFilter = {
+        from: "A1",
+        to: `J${orders.length + 1}`
+      };
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `ZOSE-Orders-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (_err) {
+      alert("Failed to export Excel file. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const getStageIndex = (stageId) => ORDER_STAGES.findIndex((s) => s.id === stageId);
+
   const handleUpdateStage = async (orderId, orderDbId, stageId) => {
     setUpdatingStage(stageId);
     setSaveError("");
@@ -56,6 +150,8 @@ export default function AdminOrdersPage() {
         setHighlightNextStage(nextStage.id);
         setTimeout(() => setHighlightNextStage(null), 2000);
       }
+      // Mark the completed stage so it turns green immediately
+      setJustCompletedStage(stageId);
 
       // Refresh orders list
       const refreshedOrders = await getAdminOrders();
@@ -97,8 +193,6 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const getStageIndex = (stageId) => ORDER_STAGES.findIndex((s) => s.id === stageId);
-
   if (isLoading) {
     return (
       <div className="p-6">
@@ -109,14 +203,62 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h2 className="text-2xl text-[#0A0A0A]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-          Orders Management
-        </h2>
-        <p className="text-[13px] text-[#555555] mt-1">
-          View and update order statuses
-        </p>
+      {/* Header with Export Button */}
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+        <div>
+          <h2 className="text-2xl text-[#0A0A0A]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            Orders Management
+          </h2>
+          <p className="text-[13px] text-[#555555] mt-1">
+            View and update order statuses
+          </p>
+        </div>
+        <button
+          onClick={handleExportToExcel}
+          disabled={isExporting || !orders.length}
+          className="rounded-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-5 py-2.5 text-[11px] tracking-[0.12em] uppercase font-semibold transition-colors"
+        >
+          {isExporting ? "Exporting..." : "Export to Excel"}
+        </button>
       </div>
+
+      {/* Status Summary Dashboard */}
+      {orders.length > 0 && (
+        <div className="mb-6 flex items-center gap-3 overflow-x-auto pb-2">
+          {/* All box */}
+          <button
+            onClick={() => setStatusFilter(null)}
+            className={`min-w-[120px] p-3 rounded-xl border transition-all text-left flex-shrink-0 ${
+              statusFilter === null
+                ? "bg-[#C9A14A] border-[#C9A14A] text-[#0A0A0A]"
+                : "bg-white border-[#C9A14A]/20 hover:border-[#C9A14A]/40"
+            }`}
+          >
+            <p className="text-xl mb-1">📋</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider">All</p>
+            <p className="text-[18px] font-bold">{statusCounts.all}</p>
+          </button>
+
+          {/* Per-stage boxes */}
+          {ORDER_STAGES.map(stage => (
+            <button
+              key={stage.id}
+              onClick={() => setStatusFilter(stage.id)}
+              className={`min-w-[120px] p-3 rounded-xl border transition-all text-left flex-shrink-0 ${
+                statusFilter === stage.id
+                  ? "bg-[#C9A14A] border-[#C9A14A] text-[#0A0A0A]"
+                  : "bg-white border-[#C9A14A]/20 hover:border-[#C9A14A]/40"
+              }`}
+            >
+              <p className="text-xl mb-1">{stage.icon}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider truncate">
+                {stage.label}
+              </p>
+              <p className="text-[18px] font-bold">{statusCounts[stage.id] || 0}</p>
+            </button>
+          ))}
+        </div>
+      )}
 
       {saveError && (
         <div className="mb-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10">
@@ -136,17 +278,21 @@ export default function AdminOrdersPage() {
         </div>
       )}
 
-      {!orders.length && !error ? (
+      {!filteredOrders.length && !error ? (
         <div className="rounded-2xl border border-[#C9A14A]/20 p-12 text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#f8f7f2] border border-[#C9A14A]/20 flex items-center justify-center text-2xl">
             📦
           </div>
-          <h3 className="text-lg text-[#0A0A0A] mb-2">No orders yet</h3>
-          <p className="text-[13px] text-[#555555]">Orders will appear here once customers place them</p>
+          <h3 className="text-lg text-[#0A0A0A] mb-2">
+            {statusFilter ? `No ${statusFilter.replace("_", " ")} orders` : "No orders yet"}
+          </h3>
+          <p className="text-[13px] text-[#555555]">
+            {statusFilter ? "Try selecting a different status or click All to see all orders" : "Orders will appear here once customers place them"}
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
-          {orders.map((order) => {
+          {filteredOrders.map((order) => {
             const currentStageIndex = getStageIndex(order.status);
 
             return (
@@ -164,7 +310,11 @@ export default function AdminOrdersPage() {
                         </p>
                         <p className="text-[15px] text-[#0A0A0A] font-medium">{order.orderId}</p>
                       </div>
-                      <span className="px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-[#C9A14A]/10 text-[#C9A14A] border border-[#C9A14A]/30">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${
+                        order.status === "delivered"
+                          ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+                          : "bg-[#C9A14A]/10 text-[#C9A14A] border-[#C9A14A]/30"
+                      }`}>
                         {order.status?.replace("_", " ")}
                       </span>
                     </div>
@@ -240,16 +390,16 @@ export default function AdminOrdersPage() {
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {ORDER_STAGES.map((stage, index) => {
-                          const isCompleted = index < currentStageIndex;
+                          const isCompleted = index < currentStageIndex || (justCompletedStage === stage.id && index === currentStageIndex) || (stage.id === "delivered" && order.status === "delivered" && index < currentStageIndex);
                           const isCurrent = index === currentStageIndex;
                           const isPending = index > currentStageIndex;
                           const isUpdating = updatingStage === stage.id;
                           const stageData = order.timeline?.find((t) => t.stage === stage.id);
 
-                          // Only the CURRENT stage should trigger an update (to advance to next stage)
-                          // Completed stages show "Done" but clicking does nothing
                           // Pending stages are disabled
                           const canClickToAdvance = isCurrent && !isUpdating;
+                          // Special case: when at shipped (index 4), delivered (index 5) should also be clickable to advance
+                          const isAtLastStageBeforeDelivery = currentStageIndex === 4 && stage.id === "delivered";
 
                           return (
                             <div
@@ -257,10 +407,10 @@ export default function AdminOrdersPage() {
                               className={`p-4 rounded-xl border transition-all ${
                                 highlightNextStage === stage.id
                                   ? "bg-[#C9A14A]/20 border-[#C9A14A] animate-pulse"
-                                  : isCurrent
-                                  ? "bg-[#C9A14A]/10 border-[#C9A14A] animate-pulse"
                                   : isCompleted
                                   ? "bg-emerald-50 border-emerald-300"
+                                  : isCurrent || isAtLastStageBeforeDelivery
+                                  ? "bg-[#C9A14A]/10 border-[#C9A14A] animate-pulse"
                                   : "bg-gray-50 border-gray-200"
                               }`}
                             >
@@ -289,17 +439,17 @@ export default function AdminOrdersPage() {
                                 </p>
                               )}
                               <button
-                                onClick={() => canClickToAdvance && handleUpdateStage(order.orderId, order.id, stage.id)}
-                                disabled={isPending || isUpdating}
+                                onClick={() => (canClickToAdvance || isAtLastStageBeforeDelivery) && handleUpdateStage(order.orderId, order.id, stage.id)}
+                                disabled={(isPending && !isAtLastStageBeforeDelivery) || isUpdating}
                                 className={`w-full py-2 rounded-full text-[9px] font-semibold uppercase tracking-wider transition-all ${
                                   isCompleted
                                     ? "bg-emerald-500 text-white cursor-default"
-                                    : canClickToAdvance
+                                    : canClickToAdvance || isAtLastStageBeforeDelivery
                                     ? "bg-[#C9A14A] hover:bg-[#E8C97A] text-[#0A0A0A]"
                                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                                 } disabled:cursor-not-allowed`}
                               >
-                                {isUpdating ? "Updating..." : isCompleted ? "✓ Done" : canClickToAdvance ? "Done" : "Waiting"}
+                                {isUpdating ? "Updating..." : isCompleted ? "✓ Done" : canClickToAdvance || isAtLastStageBeforeDelivery ? "Done" : "Waiting"}
                               </button>
                             </div>
                           );

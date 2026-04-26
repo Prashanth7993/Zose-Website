@@ -52,6 +52,7 @@ export default function OrderStatusTimeline({ timeline, currentStage, thirdParty
               const isCompleted = index <= currentIndex;
               const isCurrent = index === currentIndex;
               const isPending = index > currentIndex;
+              const hasTimestamp = timeline?.find(t => t.stage === stage.id && t.timestamp);
 
               return (
                 <div key={stage.id} className="flex flex-col items-center" style={{ width: "16.66%" }}>
@@ -59,11 +60,12 @@ export default function OrderStatusTimeline({ timeline, currentStage, thirdParty
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center text-lg border-2 transition-all
                       ${isCurrent ? "stage-current bg-[#C9A14A] border-[#C9A14A] text-white" : ""}
-                      ${isCompleted && !isCurrent ? "bg-[#C9A14A] border-[#C9A14A] text-white" : ""}
+                      ${isCompleted && !isCurrent ? "bg-emerald-500 border-emerald-500 text-white" : ""}
+                      ${hasTimestamp && isCurrent ? "bg-emerald-500 border-emerald-500 text-white" : ""}
                       ${isPending ? "bg-gray-100 border-gray-300 text-gray-400" : ""}
                     `}
                   >
-                    {isCompleted && !isCurrent ? "✓" : stage.icon}
+                    {isCompleted && !isCurrent ? "✓" : (isCurrent && timeline?.find(t => t.stage === stage.id && t.timestamp) ? "✓" : stage.icon)}
                   </div>
 
                   {/* Stage Label */}
@@ -95,6 +97,7 @@ export default function OrderStatusTimeline({ timeline, currentStage, thirdParty
           const isCompleted = index <= currentIndex;
           const isCurrent = index === currentIndex;
           const isPending = index > currentIndex;
+          const hasTimestamp = timeline?.find(t => t.stage === stage.id && t.timestamp);
 
           return (
             <div key={stage.id} className="flex items-start gap-3">
@@ -102,11 +105,12 @@ export default function OrderStatusTimeline({ timeline, currentStage, thirdParty
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2 flex-shrink-0
                   ${isCurrent ? "stage-current bg-[#C9A14A] border-[#C9A14A] text-white" : ""}
-                  ${isCompleted && !isCurrent ? "bg-[#C9A14A] border-[#C9A14A] text-white" : ""}
+                  ${isCompleted && !isCurrent ? "bg-emerald-500 border-emerald-500 text-white" : ""}
+                  ${hasTimestamp && isCurrent ? "bg-emerald-500 border-emerald-500 text-white" : ""}
                   ${isPending ? "bg-gray-100 border-gray-300 text-gray-400" : ""}
                 `}
               >
-                {isCompleted && !isCurrent ? "✓" : stage.icon}
+                {isCompleted && !isCurrent ? "✓" : (isCurrent && timeline?.find(t => t.stage === stage.id && t.timestamp) ? "✓" : stage.icon)}
               </div>
 
               {/* Stage Info */}
