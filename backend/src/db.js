@@ -70,6 +70,25 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 `;
 
+const MYSQL_RETURNS_TABLE_SQL = `
+CREATE TABLE IF NOT EXISTS returns (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id VARCHAR(50) NOT NULL UNIQUE,
+  reason VARCHAR(255) NOT NULL,
+  description TEXT,
+  photos_json TEXT,
+  status VARCHAR(50) DEFAULT 'return_requested',
+  rejection_reason TEXT,
+  courier_name VARCHAR(255),
+  tracking_id VARCHAR(255),
+  pickup_date DATE,
+  timeline_json TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (order_id) REFERENCES orders(order_id)
+);
+`;
+
 let mysqlPool = null;
 
 const getSqliteDatabase = async () => {
@@ -145,6 +164,7 @@ export const migrateDatabase = async () => {
     await db.exec(MYSQL_USERS_TABLE_SQL);
     await db.exec(MYSQL_PRODUCTS_TABLE_SQL);
     await db.exec(MYSQL_ORDERS_TABLE_SQL);
+    await db.exec(MYSQL_RETURNS_TABLE_SQL);
     // Add missing columns to existing tables (MySQL does not support ADD COLUMN IF NOT EXISTS)
     try {
       await db.exec("ALTER TABLE users ADD COLUMN phone VARCHAR(50) AFTER password_hash;");

@@ -22,6 +22,23 @@ CREATE TABLE IF NOT EXISTS products (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS returns (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id TEXT NOT NULL UNIQUE,
+  reason TEXT NOT NULL,
+  description TEXT,
+  photos_json TEXT DEFAULT '[]',
+  status TEXT DEFAULT 'return_requested',
+  rejection_reason TEXT,
+  courier_name TEXT,
+  tracking_id TEXT,
+  pickup_date TEXT,
+  timeline_json TEXT DEFAULT '[]',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (order_id) REFERENCES orders(order_id)
+);
+
 CREATE TABLE IF NOT EXISTS orders (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   order_id TEXT NOT NULL UNIQUE,

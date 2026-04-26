@@ -863,6 +863,172 @@ app.put("/api/admin/orders/:id/third-party", requireAuth, requireAdmin, async (r
   }
 });
 
+// ==================== RETURN ENDPOINTS ====================
+
+// Customer: Create return request
+app.post("/api/returns", async (req, res) => {
+  const { orderId, reason, description, photos } = req.body || {};
+
+  if (!orderId || !reason) {
+    return res.status(400).json({ message: "Order ID and reason are required." });
+  }
+
+  const validReasons = ["wrong_product", "damaged", "size_mismatch", "not_as_described", "changed_mind"];
+  if (!validReasons.includes(reason)) {
+    return res.status(400).json({ message: "Invalid return reason." });
+  }
+
+  if (description && description.length > 300) {
+    return res.status(400).json({ message: "Description cannot exceed 300 characters." });
+  }
+
+  try {
+    const order = await db.get("SELECT * FROM orders WHERE order_id = ?", [orderId]);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    // Check if return already exists
+    const existingReturn = await db.get("SELECT * FROM returns WHERE order_id = ?", [orderId]);
+    if (existingReturn) {
+      return res.status(400).json({ message: "A return request already exists for this order." });
+    }
+
+    const timeline = [
+      { stage: "return_requested", label: "Return Requested", timestamp: new Date().toISOString(), confirmed: true },
+    ];
+
+    await db.run(
+      `INSERT INTO returns (order_id, reason, description, photos_json, status, timeline_json)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [orderId, reason, description || "", JSON.stringify(photos || []), "return_requested", JSON.stringify(timeline)]
+    );
+
+    const newReturn = await db.get("SELECT * FROM returns WHERE order_id = ?", [orderId]);
+    return res.status(201).json({
+      message: "Return request submitted successfully.",
+      return: newReturn,
+    });
+  } catch (error) {
+    console.error("Create return error:", error);
+    return res.status(500).json({ message: "Unable to create return request right now." });
+  }
+});
+
+// Customer: Get return by order ID (public - customer tracks via order ID)
+app.get("/api/returns/order/:orderId", async (req, res) => {
+  const orderId = String(req.params.orderId || "").trim();
+
+  if (!orderId) {
+    return res.status(400).json({ message: "Order ID is required." });
+  }
+
+  try {
+    const ret = await db.get("SELECT * FROM returns WHERE order_id = ?", [orderId]);
+    if (!ret) {
+      return res.status(404).json({ message: "No return found for this order." });
+    }
+    return res.json({ return: ret });
+  } catch (error) {
+    console.error("Get return error:", error);
+    return res.status(500).json({ message: "Unable to fetch return right now." });
+  }
+});
+
+// Admin: Get all returns
+app.get("/api/admin/returns", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const returns = await db.all("SELECT * FROM returns ORDER BY created_at DESC");
+    // Join with orders to get customer info
+    const returnsWithOrders = await Promise.all(returns.map(async (ret) => {
+      const order = await db.get("SELECT customer_name, customer_email FROM orders WHERE order_id = ?", [ret.order_id]);
+      return { ...ret, customerName: order?.customer_name, customerEmail: order?.customer_email };
+    }));
+    return res.json({ returns: returnsWithOrders });
+  } catch (error) {
+    console.error("Fetch returns error:", error);
+    return res.status(500).json({ message: "Unable to fetch returns right now." });
+  }
+});
+
+// Admin: Update return status
+app.put("/api/admin/returns/:id", requireAuth, requireAdmin, async (req, res) => {
+  const returnId = Number(req.params.id);
+  const { status, rejectionReason, courierName, trackingId, pickupDate } = req.body || {};
+
+  if (!Number.isFinite(returnId) || returnId <= 0) {
+    return res.status(400).json({ message: "Invalid return ID." });
+  }
+
+  const validStatuses = ["return_requested", "contacting_courier", "pickup_scheduled", "picked_up", "inspected", "refunded", "rejected"];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ message: "Invalid status." });
+  }
+
+  try {
+    const ret = await db.get("SELECT * FROM returns WHERE id = ?", [returnId]);
+    if (!ret) {
+      return res.status(404).json({ message: "Return not found." });
+    }
+
+    const timeline = parseJsonField(ret.timeline_json, []);
+    const stageLabels = {
+      return_requested: "Return Requested",
+      contacting_courier: "Contacting Courier",
+      pickup_scheduled: "Pickup Scheduled",
+      picked_up: "Item Picked Up",
+      inspected: "Inspected",
+      refunded: "Refunded",
+      rejected: "Rejected",
+    };
+
+    timeline.push({
+      stage: status,
+      label: stageLabels[status] || status,
+      timestamp: new Date().toISOString(),
+      confirmed: true,
+    });
+
+    let updateFields = "timeline_json = ?, status = ?, updated_at = CURRENT_TIMESTAMP";
+    let params = [JSON.stringify(timeline), status];
+
+    if (status === "rejected" && rejectionReason) {
+      updateFields += ", rejection_reason = ?";
+      params.push(rejectionReason);
+    }
+
+    if (["contacting_courier", "pickup_scheduled"].includes(status)) {
+      if (courierName) {
+        updateFields += ", courier_name = ?";
+        params.push(courierName);
+      }
+      if (trackingId) {
+        updateFields += ", tracking_id = ?";
+        params.push(trackingId);
+      }
+      if (pickupDate) {
+        updateFields += ", pickup_date = ?";
+        params.push(pickupDate);
+      }
+    }
+
+    params.push(returnId);
+
+    await db.run(`UPDATE returns SET ${updateFields} WHERE id = ?`, params);
+
+    const updatedReturn = await db.get("SELECT * FROM returns WHERE id = ?", [returnId]);
+    return res.json({
+      message: "Return updated successfully.",
+      return: updatedReturn,
+    });
+  } catch (error) {
+    console.error("Update return error:", error);
+    return res.status(500).json({ message: "Unable to update return right now." });
+  }
+});
+
+// ==================== ERROR HANDLER ====================
+
 app.use((error, _req, res, next) => {
   if (error instanceof multer.MulterError) {
     if (error.code === "LIMIT_FILE_SIZE") {

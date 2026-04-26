@@ -206,3 +206,32 @@ export const addThirdPartyTracking = async (orderId, courierName, trackingId) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ courierName, trackingId }),
   });
+
+// ==================== RETURN API FUNCTIONS ====================
+
+// Customer: Create return request
+export const createReturnRequest = async (orderId, reason, description, photos) => {
+  const response = await fetch(`${API_BASE_URL}/api/returns`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId, reason, description, photos }),
+  });
+  return parseResponse(response);
+};
+
+// Customer: Get return by order ID
+export const getReturnByOrderId = async (orderId) => {
+  const response = await fetch(`${API_BASE_URL}/api/returns/order/${orderId}`);
+  return parseResponse(response);
+};
+
+// Admin: Get all returns
+export const getAdminReturns = async () => authFetch("/api/admin/returns");
+
+// Admin: Update return status
+export const updateReturnStatus = async (returnId, payload) =>
+  authFetch(`/api/admin/returns/${returnId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });

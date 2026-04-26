@@ -10,6 +10,7 @@ import {
   validateAdminSession,
 } from "../lib/auth";
 import AdminOrdersPage from "./AdminOrdersPage";
+import AdminReturnsPage from "./AdminReturnsPage";
 
 const colorOptions = ["Black", "White", "Merun", "Sky blue", "Bottle green", "Navy blue"];
 const sizeOptions = ["M", "L", "XL", "2XL", "3XL"];
@@ -719,6 +720,13 @@ export default function AdminPage({ onUnauthorized, onProductSaved }) {
         </button>
         <button
           type="button"
+          onClick={() => navigate("/admin/returns")}
+          className="rounded-full border border-[#C9A14A]/40 hover:border-[#C9A14A] text-[#0A0A0A] px-5 py-2.5 text-[11px] tracking-[0.12em] uppercase font-semibold"
+        >
+          Returns
+        </button>
+        <button
+          type="button"
           onClick={() => navigate("/admin/upload")}
           className="rounded-full bg-[#C9A14A] hover:bg-[#E8C97A] text-[#0A0A0A] px-5 py-2.5 text-[11px] tracking-[0.12em] uppercase font-semibold"
         >
@@ -779,6 +787,10 @@ export default function AdminPage({ onUnauthorized, onProductSaved }) {
         <Route
           path="orders"
           element={<AdminOrdersPage />}
+        />
+        <Route
+          path="returns"
+          element={<AdminReturnsPage />}
         />
         <Route path="*" element={<Navigate to="/admin/products" replace />} />
       </Routes>
