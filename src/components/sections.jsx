@@ -166,6 +166,7 @@ export const collectionsData = [
 
 export function CollectionsSection({
   showHeader = true,
+  showBackground = true,
   products = collectionsData,
   gridClassName = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6",
   imageClassName = "h-52 sm:h-60 lg:h-72",
@@ -325,14 +326,18 @@ export function CollectionsSection({
     <>
       <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-12 relative overflow-hidden">
         {/* Wave animation background */}
-        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
-          <WaveCanvas />
-        </div>
+        {showBackground && (
+          <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
+            <WaveCanvas />
+          </div>
+        )}
         {/* Background base */}
         <div
           className="absolute inset-0"
           style={{
-            background: "linear-gradient(180deg, rgba(248,249,251,0.95) 0%, rgba(248,249,251,0.88) 100%)",
+            background: showBackground
+              ? "linear-gradient(180deg, rgba(248,249,251,0.95) 0%, rgba(248,249,251,0.88) 100%)"
+              : "#ffffff",
             zIndex: 0,
           }}
         />

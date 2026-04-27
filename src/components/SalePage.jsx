@@ -264,6 +264,7 @@ export default function SalePage({ products = [], isLoading = false }) {
           </div>
           <CollectionsSection
             showHeader={false}
+            showBackground={false}
             products={filteredProducts}
             gridClassName="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6"
             imageClassName="h-48 sm:h-52"
