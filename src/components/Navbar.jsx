@@ -8,6 +8,11 @@ export default function Navbar({
   onOrdersClick,
   onCollectionsClick,
   onNewArrivalsClick,
+  onBestsellersClick,
+  onSaleClick,
+  onAboutClick,
+  onShippingClick,
+  onReturnsClick,
   activeNav = "home",
   hideNavItems = false,
 }) {
@@ -19,13 +24,17 @@ export default function Navbar({
     : [
         { label: "Collections", key: "collections" },
         { label: "New Arrivals", key: "newArrivals" },
-        { label: "Orders", key: "orders" },
+        { label: "Bestsellers", key: "bestsellers" },
+        { label: "Sale", key: "sale" },
         { label: "About", key: "about" },
       ];
 
   const handleNavClick = (item) => {
     if (item.key === "collections") onCollectionsClick?.();
     if (item.key === "newArrivals") onNewArrivalsClick?.();
+    if (item.key === "bestsellers") onBestsellersClick?.();
+    if (item.key === "sale") onSaleClick?.();
+    if (item.key === "about") onAboutClick?.();
     if (item.key === "orders") onOrdersClick?.();
   };
 
@@ -33,7 +42,7 @@ export default function Navbar({
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#C9A14A]/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 flex items-center justify-between">
 
-        {/* Left Nav Links - responsive text size */}
+        {/* Left Nav Links */}
         <div className="hidden md:flex items-center gap-4 lg:gap-8">
           {navItems.map((item) => (
             <button
@@ -50,17 +59,18 @@ export default function Navbar({
           ))}
         </div>
 
-        {/* Brand Logo - Center - responsive size */}
+        {/* Brand Logo - Center */}
         <div className="absolute left-1/2 -translate-x-1/2">
           <span
-            className="font-serif text-3xl sm:text-5xl font-bold tracking-[0.3em] text-[#C9A14A]"
+            className="font-serif text-3xl sm:text-5xl font-bold tracking-[0.3em] text-[#C9A14A] cursor-pointer"
             style={{ fontFamily: "'Cormorant Garamond', serif" }}
+            onClick={() => window.location.href = "/"}
           >
             ZOSE
           </span>
         </div>
 
-        {/* Right: Auth Buttons or User Menu - responsive */}
+        {/* Right: Auth Buttons or User Menu */}
         <div className="hidden md:flex items-center gap-2 lg:gap-4">
           {user ? (
             <div className="flex items-center gap-2 lg:gap-4">

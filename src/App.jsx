@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import HeroSection from "./components/HeroSection";
-import MarqueeBanner from "./components/MarqueeBanner";
 import CollectionsSection from "./components/CollectionsSection";
 import TrustSection from "./components/TrustSection";
 import NewsletterSection from "./components/NewsletterSection";
@@ -11,6 +10,12 @@ import AuthModal from "./components/AuthModal";
 import FloatingContactButtons from "./components/FloatingContactButtons";
 import DubaiShowcaseSection from "./components/DubaiShowcaseSection";
 import CollectionPage from "./components/CollectionPage";
+import NewArrivalsPage from "./components/NewArrivalsPage";
+import BestsellersPage from "./components/BestsellersPage";
+import SalePage from "./components/SalePage";
+import AboutPage from "./components/AboutPage";
+import ShippingPage from "./components/ShippingPage";
+import ReturnsPage from "./components/ReturnsPage";
 import AdminPage from "./components/AdminPage";
 import OrderTrackingPage from "./components/OrderTrackingPage";
 import MyOrdersPage from "./components/MyOrdersPage";
@@ -32,11 +37,10 @@ const mapApiProductToCard = (product) => ({
   tag: null,
 });
 
-function HomePage({ onShopClick, products, isProductsLoading }) {
+function HomePage({ onShopClick, onCollectionsClick, products, isProductsLoading }) {
   return (
     <>
-      <HeroSection onShopClick={onShopClick} />
-      <MarqueeBanner />
+      <HeroSection onShopClick={onShopClick} onCollectionsClick={onCollectionsClick} />
       <CollectionsSection products={products} />
       {isProductsLoading && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 pb-6 text-[13px] text-[#555555]">
@@ -99,9 +103,21 @@ function App() {
 
   const activeNav = ordersModal
     ? "orders"
-    : location.pathname === "/collections"
+    : location.pathname.startsWith("/collections")
       ? "collections"
-      : "home";
+      : location.pathname.startsWith("/new-arrivals")
+        ? "newArrivals"
+        : location.pathname.startsWith("/bestsellers")
+          ? "bestsellers"
+          : location.pathname.startsWith("/sale")
+            ? "sale"
+            : location.pathname.startsWith("/about")
+              ? "about"
+              : location.pathname.startsWith("/shipping")
+                ? "shipping"
+                : location.pathname.startsWith("/returns")
+                  ? "returns"
+                  : "home";
 
   return (
     <div className="bg-white min-h-screen">
@@ -112,16 +128,27 @@ function App() {
         onLogout={handleLogout}
         onOrdersClick={handleOrdersClick}
         onCollectionsClick={() => navigate("/collections")}
-        onNewArrivalsClick={() => navigate("/")}
+        onNewArrivalsClick={() => navigate("/new-arrivals")}
+        onBestsellersClick={() => navigate("/bestsellers")}
+        onSaleClick={() => navigate("/sale")}
+        onAboutClick={() => navigate("/about")}
+        onShippingClick={() => navigate("/shipping")}
+        onReturnsClick={() => navigate("/returns")}
         activeNav={activeNav}
         hideNavItems={location.pathname.startsWith("/admin")}
       />
       <Routes>
         <Route
           path="/"
-          element={<HomePage onShopClick={() => setAuthModal("register")} products={products} isProductsLoading={isProductsLoading} />}
+          element={<HomePage onShopClick={() => setAuthModal("register")} onCollectionsClick={() => navigate("/collections")} products={products} isProductsLoading={isProductsLoading} />}
         />
         <Route path="/collections" element={<CollectionPage products={products} isLoading={isProductsLoading} />} />
+        <Route path="/new-arrivals" element={<NewArrivalsPage products={products} isLoading={isProductsLoading} />} />
+        <Route path="/bestsellers" element={<BestsellersPage products={products} isLoading={isProductsLoading} />} />
+        <Route path="/sale" element={<SalePage products={products} isLoading={isProductsLoading} />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/shipping" element={<ShippingPage />} />
+        <Route path="/returns" element={<ReturnsPage />} />
         <Route path="/track-order" element={<OrderTrackingPage />} />
         <Route path="/my-orders" element={user ? <MyOrdersPage /> : <Navigate to="/" replace />} />
         <Route

@@ -5,7 +5,28 @@ import picture3 from "../assets/picture3.png";
 import picture4 from "../assets/picture4.png";
 import picture5 from "../assets/picture5.png";
 
-export default function HeroSection({ onShopClick }) {
+
+export function MarqueeBanner() {
+  const text =
+    "FREE SHIPPING ACROSS UAE  ·  PREMIUM QUALITY GUARANTEED  ·  EXPRESS DELIVERY IN 24H  ·  EASY RETURNS  ·  ";
+  return (
+    <div className="bg-[#C9A14A] py-2 sm:py-3 overflow-hidden whitespace-nowrap">
+      <span
+        className="text-[9px] sm:text-[10px] lg:text-[11px] font-semibold tracking-[0.22em] uppercase text-[#0A0A0A]"
+        style={{ animation: "marquee 20s linear infinite", display: "inline-block" }}
+      >
+        {text.repeat(4)}
+      </span>
+      <style>{`
+        @keyframes marquee {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+      `}</style>
+    </div>
+  );
+}
+export default function HeroSection({ onShopClick, onCollectionsClick }) {
   const heroShowcaseImages = [picture1, picture2, picture3, picture4, picture5];
   const [activeShowcaseImage, setActiveShowcaseImage] = useState(0);
 
@@ -34,7 +55,7 @@ export default function HeroSection({ onShopClick }) {
       />
 
       {/* Desktop showcase on right side */}
-      <div className="hidden lg:block absolute right-[8%] top-1/2 -translate-y-1/2 w-[340px] h-[440px] border border-[#C9A14A]/20 bg-[#ffffff]/95 overflow-hidden z-10">
+      <div className="hidden lg:block absolute right-[8%] top-1/2 -translate-y-[45%] w-[340px] h-[440px] border border-[#C9A14A]/20 bg-[#ffffff]/95 overflow-hidden z-10 pt-5">
         {heroShowcaseImages.map((imageSrc, index) => (
           <img
             key={`desktop-${imageSrc}`}
@@ -67,7 +88,12 @@ export default function HeroSection({ onShopClick }) {
           >
             UAE Trusted Brand · Est. 2024
           </span>
+          
           <div className="w-12 sm:w-14 lg:w-16 h-px bg-gradient-to-r from-transparent via-[#C9A14A] to-transparent" />
+          <div className="w-full">
+            <MarqueeBanner />
+          </div>
+          
         </div>
       </div>
 
@@ -95,7 +121,7 @@ export default function HeroSection({ onShopClick }) {
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 flex-wrap">
           <button
-            onClick={onShopClick}
+            onClick={onCollectionsClick}
             className="w-full sm:w-auto bg-[#C9A14A] hover:bg-[#E8C97A] text-[#0A0A0A] text-[10px] sm:text-[11px] font-semibold tracking-[0.16em] uppercase px-6 sm:px-9 py-3 sm:py-3.5 rounded-full transition-colors duration-200"
           >
             Shop Collection

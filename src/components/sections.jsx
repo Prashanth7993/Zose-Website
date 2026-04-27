@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+/* global ResizeObserver, cancelAnimationFrame */
 import geminiTshirtImage from "../assets/Gemini_Generated_Image_xuqw8oxuqw8oxuqw.png";
 import zoseLogo from "../assets/zose.jpeg";
 import { resolveApiAssetUrl, createOrder, loadStoredUser, updateUserPhone } from "../lib/auth";
@@ -22,6 +23,107 @@ export function MarqueeBanner() {
         }
       `}</style>
     </div>
+  );
+}
+
+// Wave Canvas for CollectionsSection background
+const waveConfig = [
+  { freq: 0.012, amp: 55, phase: 0.0, speed: 0.008, yBase: 0.30, alpha: 1.0 },
+  { freq: 0.018, amp: 45, phase: 2.1, speed: 0.011, yBase: 0.42, alpha: 1.0 },
+  { freq: 0.009, amp: 65, phase: 0.8, speed: 0.005, yBase: 0.52, alpha: 1.0 },
+  { freq: 0.022, amp: 38, phase: 3.5, speed: 0.014, yBase: 0.60, alpha: 1.0 },
+  { freq: 0.007, amp: 70, phase: 1.4, speed: 0.003, yBase: 0.68, alpha: 1.0 },
+  { freq: 0.015, amp: 48, phase: 4.2, speed: 0.009, yBase: 0.48, alpha: 1.0 },
+];
+
+function WaveCanvas() {
+  const canvasRef = useRef(null);
+  const tRef = useRef(0);
+  const animRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+
+    function resize() {
+      if (!canvas) return;
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    }
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
+
+    function draw() {
+      const W = canvas.width;
+      const H = canvas.height;
+      if (W === 0 || H === 0) {
+        animRef.current = requestAnimationFrame(draw);
+        return;
+      }
+
+      const speedMult = 2.2;
+      const intensMult = 4.0;
+
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = "rgba(248,249,251,0.97)";
+      ctx.fillRect(0, 0, W, H);
+
+      waveConfig.forEach((w) => {
+        const amp = w.amp * intensMult;
+        const alpha = Math.min(w.alpha * intensMult, 0.35);
+
+        const grad = ctx.createLinearGradient(0, 0, W, 0);
+        grad.addColorStop(0, `rgba(255,210,100,0)   `);
+        grad.addColorStop(0.12, `rgba(255,210,100,${alpha}) `);
+        grad.addColorStop(0.5, `rgba(255,220,110,${alpha * 1.4})`);
+        grad.addColorStop(0.88, `rgba(255,210,100,${alpha})`);
+        grad.addColorStop(1, `rgba(255,210,100,0)`);
+
+        ctx.beginPath();
+        ctx.moveTo(0, H);
+        for (let x = 0; x <= W; x += 2) {
+          const primary = Math.sin(x * w.freq + w.phase + tRef.current * w.speed * speedMult * 60);
+          const secondary = Math.sin(x * w.freq * 0.5 + tRef.current * w.speed * 0.7 * speedMult * 60);
+          const y = w.yBase * H + primary * amp + secondary * amp * 0.3;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(W, H);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 2) {
+          const primary = Math.sin(x * w.freq + w.phase + tRef.current * w.speed * speedMult * 60);
+          const secondary = Math.sin(x * w.freq * 0.5 + tRef.current * w.speed * 0.7 * speedMult * 60);
+          const y = w.yBase * H + primary * amp + secondary * amp * 0.3;
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = `rgba(201,161,74,${alpha * 1.8})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+
+      tRef.current += 0.016;
+      animRef.current = requestAnimationFrame(draw);
+    }
+
+    draw();
+
+    return () => {
+      ro.disconnect();
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      style={{ zIndex: 0 }}
+    />
   );
 }
 
@@ -221,7 +323,21 @@ export function CollectionsSection({
 
   return (
     <>
-      <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-12 max-w-7xl mx-auto">
+      <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-12 relative overflow-hidden">
+        {/* Wave animation background */}
+        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
+          <WaveCanvas />
+        </div>
+        {/* Background base */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(180deg, rgba(248,249,251,0.95) 0%, rgba(248,249,251,0.88) 100%)",
+            zIndex: 0,
+          }}
+        />
+        {/* Content layer */}
+        <div className="relative max-w-7xl mx-auto" style={{ zIndex: 1 }}>
         {showHeader && (
           <div className="text-center mb-8 sm:mb-10 lg:mb-14">
             <p className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-[#C9A14A] mb-2 sm:mb-3">Featured</p>
@@ -305,6 +421,7 @@ export function CollectionsSection({
             No products available yet.
           </div>
         )}
+        </div>
       </section>
 
       {selectedProduct && (
@@ -591,10 +708,13 @@ export function TrustSection() {
   return (
     <section className="bg-[#f8f9fb] border-t border-b border-[#C9A14A]/20 py-12 sm:py-14 lg:py-16 px-4 sm:px-6 lg:px-12">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center gap-3 sm:gap-4 mb-8 sm:mb-10 lg:mb-12">
+        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
           <div className="flex-1 h-px bg-[#C9A14A]/15" />
-          <span className="text-[13px] sm:text-[15px] font-semibold tracking-[0.22em] uppercase text-[#333333] whitespace-nowrap">UAE Trusted Brand</span>
+          <span className="text-[13px] sm:text-[15px] font-semibold tracking-[0.22em] uppercase text-[#333333] whitespace-nowrap">UAE Trusted Brand · Est. 2024</span>
           <div className="flex-1 h-px bg-[#C9A14A]/15" />
+        </div>
+        <div className="mb-6 sm:mb-8">
+          
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
           {trustItems.map((item) => (
@@ -695,38 +815,48 @@ export function Footer() {
           </div>
 
           {[
-            { title: "Shop", links: ["New Arrivals", "Bestsellers", "Collections", "Sale"] },
-            { title: "Help", links: ["Shipping Info", "Returns", "Size Guide", "Contact Us"] },
-            { title: "Contact", links: ["Dubai, UAE", supportEmail, supportPhone] },
+            { title: "Shop", links: [
+              { label: "New Arrivals", href: "/new-arrivals" },
+              { label: "Bestsellers", href: "/bestsellers" },
+              { label: "Collections", href: "/collections" },
+              { label: "Sale", href: "/sale" },
+            ]},
+            { title: "Help", links: [
+              { label: "Shipping Info", href: "/shipping" },
+              { label: "Returns", href: "/returns" },
+              { label: "Size Guide", href: "/collections" },
+              { label: "Contact Us", href: "mailto:silverstonetrading2026@gmail.com" },
+            ]},
+            { title: "Contact", links: [
+              { label: "Dubai, UAE", href: null },
+              { label: supportEmail, href: `mailto:${supportEmail}` },
+              { label: supportPhone, href: `tel:${supportPhone.replace(/\s+/g, "")}` },
+            ]},
           ].map((col) => (
             <div key={col.title}>
               <h4 className="text-[14px] sm:text-[16px] font-semibold tracking-[0.18em] uppercase text-[#0A0A0A] mb-3 sm:mb-4 lg:mb-5 font-medium">
                 {col.title}
               </h4>
               <div className="flex flex-col gap-2 sm:gap-2.5 lg:gap-3">
-                {col.links.map((l) => (
-                  l === supportEmail ? (
+                {col.links.map((l) => {
+                  const isEmail = l.href?.startsWith("mailto:");
+                  const isTel = l.href?.startsWith("tel:");
+                  const isPhone = l.label === supportPhone;
+
+                  return l.href ? (
                     <a
-                      key={l}
-                      href={`mailto:${supportEmail}`}
+                      key={l.label}
+                      href={l.href}
                       className="text-[11px] sm:text-[12px] lg:text-[13px] text-[#333333] hover:text-[#0A0A0A] transition-colors break-all"
                     >
-                      {l}
-                    </a>
-                  ) : l === supportPhone ? (
-                    <a
-                      key={l}
-                      href={`tel:${supportPhone.replace(/\s+/g, "")}`}
-                      className="text-[11px] sm:text-[12px] lg:text-[13px] text-[#333333] hover:text-[#0A0A0A] transition-colors"
-                    >
-                      {l}
+                      {l.label}
                     </a>
                   ) : (
-                    <span key={l} className="text-[11px] sm:text-[12px] lg:text-[13px] text-[#333333] hover:text-[#0A0A0A] cursor-pointer transition-colors">
-                      {l}
+                    <span key={l.label} className="text-[11px] sm:text-[12px] lg:text-[13px] text-[#333333]">
+                      {l.label}
                     </span>
-                  )
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
